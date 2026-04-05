@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FlightStrip - Free Pilot Kneeboard Generator</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .airport-card { page-break-inside: avoid; margin-bottom: 1rem; }
+      body { font-size: 11px; }
+      .affiliate-sidebar { display: none !important; }
+    }
+  </style>
+  <!-- SET window.FLIGHTSTRIP_API_URL = "https://your-railway-url.up.railway.app" for production -->
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div id="root"></div>
+<script type="text/babel">
+const API_BASE = window.FLIGHTSTRIP_API_URL || "http://localhost:8000";
+
+const METAR_COLORS = {
+  VFR: "bg-green-100 text-green-800 border-green-300",
+  MVFR: "bg-blue-100 text-blue-800 border-blue-300",
+  IFR: "bg-red-100 text-red-800 border-red-300",
+  LIFR: "bg-purple-100 text-purple-800 border-purple-300",
+  UNKNOWN: "bg-gray-100 text-gray-600 border-gray-300",
+};
+
+function MetarBadge({ category }) {
+  const cls = METAR_COLORS[category] || METAR_COLORS.UNKNOWN;
+  return <span className={`px-2 py-0.5 rounded border text-xs font-bold ${cls}`}>{category || "?"}</span>;
+}
+
+function FreqBadge({ freq_type, frequency }) {
+  const isCtaf = ["CTAF","UNICOM"].includes(freq_type?.toUpperCase());
+  const isAtis = ["ATIS","AWOS","ASOS"].includes(freq_type?.toUpperCase());
+  const cls = isCtaf ? "bg-yellow-100 text-yellow-800" : isAtis ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-700";
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs mr-1 mb-1 font-mono ${cls}`}>
+      {freq_type} {frequency}
+    </span>
+  );
+}
+
+function AirportCard({ apt, mode }) {
+  return (
+    <div className="airport-card bg-white rounded-lg shadow border border-gray-200 p-4 mb-4 flex gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className="text-lg font-bold text-blue-700 font-mono">{apt.icao}</span>
+          <span className="font-semibold text-gray-800">{apt.name}</span>
+          <span className="text-gray-500 text-sm">{apt.city}, {apt.state}</span>
+          {apt.airspace_class && (
+            <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-bold border border-orange-300">
+              Class {apt.airspace_class}
+            </span>
+          )}
+          <MetarBadge category={apt.metar?.flight_category} />
+          <span className="ml-auto text-xs text-gray-400">{apt.along_track_nm} nm from dep</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
+          <div>
+            <div className="text-gray-600">Elev: <span className="font-semibold">{apt.elevation_ft?.toLocaleString()} ft</span></div>
+            {apt.tpa_ft && <div className="text-gray-600">TPA: <span className="font-semibold">{apt.tpa_ft?.toLocaleString()} ft</span></div>}
+            <div className="text-gray-600">
+              Fuel: {apt.fuel_100ll ? <span className="text-green-700 font-semibold">100LL </span> : null}
+              {apt.fuel_jeta ? <span className="text-blue-700 font-semibold">Jet-A</span> : null}
+              {!apt.fuel_100ll && !apt.fuel_jeta ? <span className="text-gray-400">&mdash;</span> : null}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-1">FREQUENCIES</div>
+            <div className="flex flex-wrap">
+              {(apt.frequencies || []).map((f,i) => <FreqBadge key={i} {...f} />)}
+              {!(apt.frequencies || []).length && <span className="text-gray-400 text-xs">None</span>}
+            </div>
+          </div>
+        </div>
+
+        {(apt.runways || []).length > 0 && (
+          <div className="mb-3">
+            <div className="text-xs font-semibold text-gray-500 mb-1">RUNWAYS</div>
+            <table className="text-xs w-full">
+              <thead><tr className="text-gray-400"><th className="text-left pr-3">ID</th><th className="text-left pr-3">Length</th><th className="text-left pr-3">Surface</th><th className="text-left pr-3">Pattern</th><th className="text-left">Lighting</th></tr></thead>
+              <tbody>
+                {apt.runways.map((r,i) => (
+                  <tr key={i} className="border-t border-gray-100">
+                    <td className="pr-3 font-mono font-semibold">{r.rwy_id}</td>
+                    <td className="pr-3">{r.length_ft?.toLocaleString()} ft</td>
+                    <td className="pr-3">{r.surface || "\u2014"}</td>
+                    <td className="pr-3">{r.pattern_dir || "\u2014"}</td>
+                    <td>{r.lighting || "\u2014"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {mode === "student" && (apt.frequencies || []).find(f => ["CTAF","UNICOM"].includes(f.freq_type?.toUpperCase())) && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded p-2 text-xs text-yellow-900 mb-2">
+            <strong>Student Tip:</strong> Call {apt.frequencies.find(f => ["CTAF","UNICOM"].includes(f.freq_type?.toUpperCase()))?.frequency} on 45 degree entry to downwind. Left traffic unless marked otherwise.
+          </div>
+        )}
+
+        {apt.metar?.raw_metar && apt.metar.raw_metar !== "N/A" && (
+          <div className="text-xs font-mono text-gray-500 mt-2 bg-gray-50 rounded px-2 py-1 break-all">
+            {apt.metar.raw_metar}
+          </div>
+        )}
+      </div>
+
+      {(apt.affiliates || []).length > 0 && (
+        <div className="affiliate-sidebar no-print w-40 flex-shrink-0 border-l pl-3">
+          <div className="text-xs text-gray-400 mb-1 font-semibold">Sponsored</div>
+          {apt.affiliates.map((a,i) => (
+            <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+               className="block text-xs text-blue-600 hover:underline mb-2 leading-tight">
+              {a.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [fromIcao, setFromIcao] = React.useState("KBJC");
+  const [toIcao, setToIcao] = React.useState("KSUN");
+  const [corridor, setCorridor] = React.useState(25);
+  const [mode, setMode] = React.useState("vfr");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [result, setResult] = React.useState(null);
+
+  async function generateRoute() {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const resp = await fetch(`${API_BASE}/route`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({"from": fromIcao.toUpperCase(), "to": toIcao.toUpperCase(), "corridor_nm": corridor, "mode": mode})
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.detail || resp.statusText);
+      }
+      setResult(await resp.json());
+    } catch(e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      <header className="no-print text-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-800">FlightStrip</h1>
+        <p className="text-gray-500 mt-1">Free pilot kneeboard generator &mdash; airports along your route with live weather</p>
+      </header>
+
+      <div className="no-print bg-white rounded-lg shadow border border-gray-200 p-5 mb-6">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">From (ICAO)</label>
+            <input value={fromIcao} onChange={e=>setFromIcao(e.target.value.toUpperCase())}
+              className="border rounded px-3 py-2 w-24 text-center font-mono font-bold text-lg uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+              maxLength={4} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">To (ICAO)</label>
+            <input value={toIcao} onChange={e=>setToIcao(e.target.value.toUpperCase())}
+              className="border rounded px-3 py-2 w-24 text-center font-mono font-bold text-lg uppercase focus:outline-none focus:ring-2 focus:ring-blue-400"
+              maxLength={4} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Corridor: {corridor} nm</label>
+            <input type="range" min={10} max={50} value={corridor} onChange={e=>setCorridor(Number(e.target.value))}
+              className="w-32" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Mode</label>
+            <div className="flex gap-1">
+              {["vfr","ifr","student"].map(m => (
+                <button key={m} onClick={()=>setMode(m)}
+                  className={`px-3 py-2 rounded text-xs font-bold border ${mode===m ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}>
+                  {m.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button onClick={generateRoute} disabled={loading}
+            className="px-5 py-2 bg-blue-700 text-white rounded font-semibold hover:bg-blue-800 disabled:opacity-50">
+            {loading ? "Loading..." : "Generate Route"}
+          </button>
+          <button onClick={()=>window.print()} disabled={!result}
+            className="px-5 py-2 bg-gray-600 text-white rounded font-semibold hover:bg-gray-700 disabled:opacity-50">
+            Print PDF
+          </button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="text-center py-12 text-gray-500">
+          <div className="text-2xl mb-2">Loading...</div>
+          Fetching route and live weather...
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-300 rounded p-4 text-red-800 mb-4">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {result && (
+        <>
+          <div className="no-print text-sm text-gray-500 mb-3">
+            {result.summary.total_airports} airports along {result.summary.distance_nm} nm route (corridor: {result.summary.corridor_nm} nm)
+          </div>
+          {result.route.map((apt, i) => <AirportCard key={i} apt={apt} mode={mode} />)}
+
+          <div className="no-print bg-blue-50 border border-blue-200 rounded p-4 mt-4">
+            <div className="font-semibold text-blue-800 mb-2">Plan smarter. Fly safer.</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                {label:"Sporty's Pilot Shop", url:"https://www.sportys.com/PLACEHOLDER"},
+                {label:"David Clark Headsets", url:"https://amzn.to/PLACEHOLDER"},
+                {label:"ASA Flight Computer", url:"https://amzn.to/PLACEHOLDER"},
+                {label:"Aviation Weather Book", url:"https://amzn.to/PLACEHOLDER"},
+              ].map((a,i) => (
+                <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                   className="text-xs text-blue-600 hover:underline">
+                  {a.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <footer className="no-print text-center text-xs text-gray-400 mt-8 pb-6">
+        Data: FAA NASR + aviationweather.gov | Updated every 28 days | Free for all pilots
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
