@@ -1,0 +1,7 @@
+data/*.db
+data/nasr_raw/
+__pycache__/
+node_modules/
+.env
+*.pyc
+dist/
