@@ -137,8 +137,8 @@ async def route_pdf(
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename=flightstrip_{from_icao}_{to_icao}.pdf"}
         )
-    except ImportError:
-        # WeasyPrint not available -- return HTML with print CSS
+    except Exception:
+        # WeasyPrint not available or missing system libs -- return HTML with print CSS
         return StreamingResponse(
             io.BytesIO(html_content.encode()),
             media_type="text/html",
