@@ -1,0 +1,26 @@
+name: Refresh NASR Data
+
+on:
+  schedule:
+    - cron: "0 6 1,29 * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Download NASR data
+        run: python scripts/download_nasr.py
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/airports.db data/nasr_version.txt
+          git diff --cached --quiet || git commit -m "chore: refresh NASR data $(date +%Y-%m-%d)"
+          git push
