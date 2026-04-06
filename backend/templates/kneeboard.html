@@ -3,69 +3,93 @@
 <head>
 <meta charset="UTF-8"/>
 <style>
-  body { font-family: Arial, sans-serif; font-size: 10px; margin: 0; padding: 10px; }
-  .header { text-align: center; border-bottom: 2px solid #333; margin-bottom: 10px; padding-bottom: 5px; }
-  .airport { border: 1px solid #666; border-radius: 4px; margin-bottom: 8px; padding: 6px; page-break-inside: avoid; }
-  .airport-header { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
-  .icao { font-size: 14px; font-weight: bold; color: #1a56db; font-family: monospace; }
-  .apt-name { font-weight: bold; }
-  .badge { background: #e1e7ff; color: #2d3db4; border-radius: 3px; padding: 1px 4px; font-size: 9px; font-weight: bold; }
-  .metar-vfr { background: #d1fae5; color: #065f46; }
-  .metar-mvfr { background: #dbeafe; color: #1e40af; }
-  .metar-ifr { background: #fee2e2; color: #991b1b; }
-  .metar-lifr { background: #ede9fe; color: #5b21b6; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; margin: 0; padding: 0.2in; }
+  @page { size: 8.5in 5.5in landscape; margin: 0.25in; }
+
+  .route-header {
+    font-size: 10pt; font-weight: bold; border-bottom: 1.5pt solid #000;
+    padding-bottom: 3px; margin-bottom: 6px;
+    display: flex; justify-content: space-between;
+  }
+  .page-num { font-size: 8pt; color: #666; }
+
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: #666; font-size: 9px; padding: 1px 3px; }
-  td { padding: 1px 3px; }
-  tr:nth-child(even) { background: #f9f9f9; }
-  .raw-metar { font-family: monospace; font-size: 8px; color: #555; margin-top: 4px; background: #f5f5f5; padding: 2px 4px; border-radius: 2px; }
-  .freq-ctaf { background: #fef3c7; color: #92400e; padding: 1px 4px; border-radius: 2px; font-weight: bold; }
-  .freq-atis { background: #dbeafe; color: #1e40af; padding: 1px 4px; border-radius: 2px; }
-  .freq-normal { background: #f3f4f6; padding: 1px 4px; border-radius: 2px; }
+  thead th {
+    background: #222; color: #fff; font-size: 8pt; padding: 2px 3px;
+    text-align: left; white-space: nowrap;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  tbody tr { page-break-inside: avoid; }
+  tbody td { padding: 2px 3px; border-bottom: 0.5pt solid #ddd; font-size: 8.5pt; }
+  tbody tr:nth-child(even) td {
+    background: #f5f5f5;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .icao { font-family: Courier, monospace; font-weight: bold; color: #1a56db; }
+  .mono { font-family: Courier, monospace; }
+  .freq-ctaf { background:#fef3c7; padding:0 3px; border-radius:2px; font-weight:bold; }
+  .freq-atis { background:#dbeafe; padding:0 3px; border-radius:2px; }
+  .wx-VFR  { color:#065f46; font-weight:bold; }
+  .wx-MVFR { color:#1e40af; font-weight:bold; }
+  .wx-IFR  { color:#991b1b; font-weight:bold; }
+  .wx-LIFR { color:#5b21b6; font-weight:bold; }
+  .wx-UNKNOWN { color:#999; }
+  .fuel-yes { color:#065f46; font-weight:bold; }
 </style>
 </head>
 <body>
-<div class="header">
-  <strong>FlightStrip Kneeboard</strong> &mdash; {{ from_icao }} &rarr; {{ to_icao }} ({{ airports|length }} airports, {{ mode.upper() }} mode)
+<div class="route-header">
+  <span>FlightStrip | {{ from_icao }} &rarr; {{ to_icao }} | {{ airports|length }} airports | {{ mode|upper }} mode</span>
+  <span>Generated {{ generated_date|default('N/A') }}</span>
 </div>
-{% for apt in airports %}
-<div class="airport">
-  <div class="airport-header">
-    <span class="icao">{{ apt.icao }}</span>
-    <span class="apt-name">{{ apt.name }}</span>
-    <span>{{ apt.city }}, {{ apt.state }}</span>
-    {% if apt.airspace_class %}<span class="badge">Class {{ apt.airspace_class }}</span>{% endif %}
-    {% set cat = apt.metar.flight_category or 'UNKNOWN' %}
-    <span class="badge metar-{{ cat.lower() }}">{{ cat }}</span>
-    <span style="margin-left:auto; color:#888">{{ apt.along_track_nm }} nm</span>
-  </div>
-  <div class="grid">
-    <div>
-      <div>Elev: <strong>{{ apt.elevation_ft|default(0)|int }} ft</strong>{% if apt.tpa_ft %} | TPA: <strong>{{ apt.tpa_ft }} ft</strong>{% endif %}</div>
-      <div>Fuel: {% if apt.fuel_100ll %}<strong>100LL</strong> {% endif %}{% if apt.fuel_jeta %}<strong>Jet-A</strong>{% endif %}{% if not apt.fuel_100ll and not apt.fuel_jeta %}&mdash;{% endif %}</div>
-      {% if apt.runways %}
-      <table style="margin-top:4px">
-        <thead><tr><th>RWY</th><th>Length</th><th>Surface</th><th>Pattern</th></tr></thead>
-        <tbody>
-          {% for r in apt.runways %}
-          <tr><td><strong>{{ r.rwy_id }}</strong></td><td>{{ r.length_ft|default(0)|int }} ft</td><td>{{ r.surface or '&mdash;' }}</td><td>{{ r.pattern_dir or '&mdash;' }}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-    </div>
-    <div>
-      {% for f in apt.frequencies %}
-      {% set ftype = f.freq_type.upper() %}
-      <span class="{% if ftype in ['CTAF','UNICOM'] %}freq-ctaf{% elif ftype in ['ATIS','AWOS','ASOS'] %}freq-atis{% else %}freq-normal{% endif %}">{{ f.freq_type }} {{ f.frequency }}</span>
-      {% endfor %}
-    </div>
-  </div>
-  {% if apt.metar.raw_metar and apt.metar.raw_metar != 'N/A' %}
-  <div class="raw-metar">{{ apt.metar.raw_metar }}</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>ICAO</th><th>Name / City</th><th style="text-align:right">Dist</th>
+      <th>Elev&#8593;TPA</th><th>Runway</th><th>Surf</th><th>Pat</th>
+      <th>Freq</th><th>ATIS</th><th>Fuel</th><th>WX</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for apt in airports %}
+  {% if apt.kneeboard_include is not defined or apt.kneeboard_include %}
+  {% set cat = apt.metar.flight_category if apt.metar and apt.metar.flight_category else 'UNKNOWN' %}
+  {% set lr = apt.runways | sort(attribute='length_ft', reverse=True) | first if apt.runways else None %}
+  {% set pfreq = namespace(val=None) %}
+  {% for f in (apt.frequencies or []) %}
+    {% if f.freq_type in ['TWR','CTAF','UNICOM'] and pfreq.val is none %}
+      {% set pfreq.val = f %}
+    {% endif %}
+  {% endfor %}
+  {% set afreq = namespace(val=None) %}
+  {% for f in (apt.frequencies or []) %}
+    {% if f.freq_type in ['ATIS','AWOS','ASOS'] and afreq.val is none %}
+      {% set afreq.val = f %}
+    {% endif %}
+  {% endfor %}
+  <tr>
+    <td><span class="icao">{{ apt.icao }}</span></td>
+    <td>{{ apt.name[:18] }}{% if apt.name|length > 18 %}&hellip;{% endif %} <span style="color:#999">{{ apt.city[:10] }}</span></td>
+    <td class="mono" style="text-align:right">{{ apt.along_track_nm }}nm</td>
+    <td class="mono">{{ apt.elevation_ft }}{% if apt.tpa_ft %}&#8593;{{ apt.tpa_ft }}{% endif %}</td>
+    <td class="mono">{% if lr %}{{ lr.rwy_id }} {{ "{:,}".format(lr.length_ft) }}'{% else %}&mdash;{% endif %}</td>
+    <td class="mono">{% if lr %}{{ lr.surface[:4] if lr.surface else '&mdash;' }}{% else %}&mdash;{% endif %}</td>
+    <td class="mono" style="text-align:center">{% if lr %}{{ lr.pattern_dir or '&mdash;' }}{% else %}&mdash;{% endif %}</td>
+    <td>{% if pfreq.val %}<span class="{% if pfreq.val.freq_type in ['CTAF','UNICOM'] %}freq-ctaf{% endif %} mono">{{ pfreq.val.frequency }}</span>{% else %}&mdash;{% endif %}</td>
+    <td>{% if afreq.val %}<span class="freq-atis mono">{{ afreq.val.frequency }}</span>{% else %}&mdash;{% endif %}</td>
+    <td>
+      {% if apt.fuel_100ll and apt.fuel_jeta %}<span class="fuel-yes">Both</span>
+      {% elif apt.fuel_100ll %}<span class="fuel-yes">100LL</span>
+      {% elif apt.fuel_jeta %}<span class="fuel-yes">JetA</span>
+      {% else %}&mdash;{% endif %}
+    </td>
+    <td><span class="wx-{{ cat }}">{{ cat }}</span></td>
+  </tr>
   {% endif %}
-</div>
-{% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
 </body>
 </html>
