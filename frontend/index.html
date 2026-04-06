@@ -96,7 +96,7 @@ function DetailRow({ apt, colSpan }) {
             {(apt.runways||[]).length
               ? apt.runways.map((r,i)=>(
                   <div key={i} className="mono text-gray-700">
-                    {r.rwy_id} \u2014 {r.length_ft?.toLocaleString()}ft {surfaceAbbr(r.surface)} pat:{r.pattern_dir||'\u2014'} lts:{r.lighting||'\u2014'}
+                    {r.rwy_id}{' \u2014 '}{r.length_ft?.toLocaleString()}ft {surfaceAbbr(r.surface)} pat:{r.pattern_dir||'\u2014'} lts:{r.lighting||'\u2014'}
                   </div>
                 ))
               : <span className="text-gray-400">No runway data</span>}
@@ -157,18 +157,18 @@ function AirportRow({ apt, expanded, onToggle }) {
         <td className="px-2 py-1 whitespace-nowrap">
           {primaryFreq
             ? <span className={`inline-block px-1.5 py-0.5 rounded text-xs mono font-bold border ${isTowered ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-yellow-100 text-yellow-900 border-yellow-300'}`}>{primaryFreq}</span>
-            : <span className="text-gray-300 text-xs">\u2014</span>}
+            : <span className="text-gray-300 text-xs">&mdash;</span>}
         </td>
         <td className="px-2 py-1 whitespace-nowrap">
           {apt.freq_atis
             ? <span className="inline-block px-1.5 py-0.5 rounded text-xs mono border bg-blue-100 text-blue-800 border-blue-200">{apt.freq_atis}</span>
-            : <span className="text-gray-300 text-xs">\u2014</span>}
+            : <span className="text-gray-300 text-xs">&mdash;</span>}
         </td>
         <td className="px-2 py-1 text-xs whitespace-nowrap">
           {apt.fuel_100ll && apt.fuel_jeta ? <span className="text-green-700 font-semibold">Both</span>
            : apt.fuel_100ll ? <span className="text-green-700">100LL</span>
            : apt.fuel_jeta ? <span className="text-blue-700">JetA</span>
-           : <span className="text-gray-300">\u2014</span>}
+           : <span className="text-gray-300">&mdash;</span>}
         </td>
         <td className="px-2 py-1"><WxBadge category={cat}/></td>
       </tr>
@@ -189,7 +189,7 @@ function WaypointInputs({ waypoints, setWaypoints }) {
     <div className="flex items-center gap-1 flex-wrap">
       {waypoints.map((wp, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <span className="text-gray-400 font-bold text-lg">\u2192</span>}
+          {i > 0 && <span className="text-gray-400 font-bold text-lg">&#8594;</span>}
           <div className="relative">
             <input
               value={wp}
@@ -201,7 +201,7 @@ function WaypointInputs({ waypoints, setWaypoints }) {
             {waypoints.length > 2 && i > 0 && i < waypoints.length-1 && (
               <button onClick={()=>removeStop(i)}
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-400 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 leading-none">
-                \u00d7
+                &times;
               </button>
             )}
           </div>
@@ -377,7 +377,7 @@ function App() {
         </div>
       </div>
 
-      {loading && <div className="text-center py-10 text-gray-400 text-sm">Fetching route and live weather\u2026</div>}
+      {loading && <div className="text-center py-10 text-gray-400 text-sm">Fetching route and live weather&hellip;</div>}
       {error && <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm mb-4"><strong>Error:</strong> {error}</div>}
       {result && <RouteTable airports={result.route} summary={result.summary} routeLabel={routeLabel} mode={mode}/>}
 
