@@ -5,10 +5,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 import sqlite3, io
 
-from backend.route import get_route_airports, haversine_nm
+from backend.route import get_route_airports, get_multi_waypoint_airports, haversine_nm
 from backend.weather import get_metars
 from backend.affiliates import get_affiliates
 
@@ -62,8 +62,11 @@ async def get_airport(icao: str):
     return rec
 
 class RouteRequest(BaseModel):
-    from_field: str = Field(alias="from")
-    to_icao: str = Field(alias="to")
+    # Multi-waypoint: list of 2-4 ICAOs  ["KBJC", "KPUB", "KGXY"]
+    waypoints: Optional[List[str]] = None
+    # Legacy single-segment (kept for backwards compat)
+    from_field: Optional[str] = Field(None, alias="from")
+    to_icao: Optional[str] = Field(None, alias="to")
     corridor_nm: float = 25
     mode: str = "vfr"
     exclude_heliports: bool = True
@@ -72,11 +75,21 @@ class RouteRequest(BaseModel):
 
     model_config = {"populate_by_name": True}
 
+    def get_waypoints(self) -> list:
+        """Resolve to a list of waypoint ICAOs regardless of input style."""
+        if self.waypoints and len(self.waypoints) >= 2:
+            return [w.upper() for w in self.waypoints]
+        if self.from_field and self.to_icao:
+            return [self.from_field.upper(), self.to_icao.upper()]
+        raise ValueError("Provide either 'waypoints' list or 'from'+'to' fields")
+
 @app.post("/route")
 async def post_route(req: RouteRequest):
     try:
-        airports = get_route_airports(
-            req.from_field, req.to_icao, req.corridor_nm,
+        wps = req.get_waypoints()
+        airports = get_multi_waypoint_airports(
+            wps,
+            corridor_nm=req.corridor_nm,
             exclude_heliports=req.exclude_heliports,
             public_only=req.public_only,
             min_runway_ft=req.min_runway_ft
@@ -86,27 +99,37 @@ async def post_route(req: RouteRequest):
 
     icao_list = [a['icao'] for a in airports]
     metars = await get_metars(icao_list)
-
     vfr_freq_types = {'CTAF','UNICOM','ATIS','AWOS','ASOS','TWR','GND'}
 
     for apt in airports:
         apt['metar'] = metars.get(apt['icao'], {'flight_category': 'UNKNOWN', 'raw_metar': 'N/A'})
         apt['affiliates'] = get_affiliates(apt, req.mode)
-        if req.mode == 'vfr' or req.mode == 'student':
+        if req.mode in ('vfr', 'student'):
             apt['frequencies'] = [f for f in apt['frequencies'] if f['freq_type'].upper() in vfr_freq_types]
 
-    origin = airports[0] if airports else None
-    dest = airports[-1] if airports else None
+    # Compute total distance across all waypoints
     total_nm = 0
-    if origin and dest:
-        total_nm = round(haversine_nm(origin['lat'], origin['lon'], dest['lat'], dest['lon']))
+    wp_data = []
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    for icao in wps:
+        row = conn.execute("SELECT lat, lon FROM airports WHERE icao=?", (icao,)).fetchone()
+        if row:
+            wp_data.append(dict(row))
+    conn.close()
+    for i in range(len(wp_data) - 1):
+        total_nm += haversine_nm(wp_data[i]['lat'], wp_data[i]['lon'], wp_data[i+1]['lat'], wp_data[i+1]['lon'])
+
+    route_label = " \u2192 ".join(wps)
 
     return {
         "route": airports,
+        "waypoints": wps,
+        "route_label": route_label,
         "summary": {
             "total_airports": len(airports),
             "corridor_nm": req.corridor_nm,
-            "distance_nm": total_nm
+            "distance_nm": round(total_nm)
         }
     }
 
@@ -118,7 +141,8 @@ async def route_pdf(
     mode: str = "vfr"
 ):
     try:
-        airports = get_route_airports(from_icao, to_icao, corridor_nm)
+        wps = [from_icao.upper(), to_icao.upper()]
+        airports = get_multi_waypoint_airports(wps, corridor_nm)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -127,13 +151,23 @@ async def route_pdf(
     for apt in airports:
         apt['metar'] = metars.get(apt['icao'], {'flight_category': 'UNKNOWN', 'raw_metar': 'N/A'})
 
+    route_label = " \u2192 ".join(wps)
+
     from jinja2 import Environment, FileSystemLoader
+    from datetime import datetime
     template_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(str(template_dir)))
 
     try:
         template = env.get_template("kneeboard.html")
-        html_content = template.render(airports=airports, from_icao=from_icao, to_icao=to_icao, mode=mode)
+        html_content = template.render(
+            airports=airports,
+            route_label=route_label,
+            from_icao=from_icao,
+            to_icao=to_icao,
+            mode=mode,
+            generated_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {e}")
 
@@ -146,7 +180,6 @@ async def route_pdf(
             headers={"Content-Disposition": f"attachment; filename=flightstrip_{from_icao}_{to_icao}.pdf"}
         )
     except Exception:
-        # WeasyPrint not available or missing system libs -- return HTML with print CSS
         return StreamingResponse(
             io.BytesIO(html_content.encode()),
             media_type="text/html",
@@ -157,8 +190,10 @@ async def route_pdf(
 @app.post("/route/pdf")
 async def post_route_pdf(req: RouteRequest):
     try:
-        airports = get_route_airports(
-            req.from_field, req.to_icao, req.corridor_nm,
+        wps = req.get_waypoints()
+        airports = get_multi_waypoint_airports(
+            wps,
+            corridor_nm=req.corridor_nm,
             exclude_heliports=req.exclude_heliports,
             public_only=req.public_only,
             min_runway_ft=req.min_runway_ft
@@ -171,6 +206,8 @@ async def post_route_pdf(req: RouteRequest):
     for apt in airports:
         apt['metar'] = metars.get(apt['icao'], {'flight_category': 'UNKNOWN', 'raw_metar': 'N/A'})
 
+    route_label = " \u2192 ".join(wps)
+
     from jinja2 import Environment, FileSystemLoader
     from datetime import datetime
     template_dir = Path(__file__).parent / "templates"
@@ -180,13 +217,16 @@ async def post_route_pdf(req: RouteRequest):
         template = env.get_template("kneeboard.html")
         html_content = template.render(
             airports=airports,
-            from_icao=req.from_field.upper(),
-            to_icao=req.to_icao.upper(),
+            route_label=route_label,
+            from_icao=wps[0],
+            to_icao=wps[-1],
             mode=req.mode,
             generated_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {e}")
+
+    file_label = "-".join(wps)
 
     try:
         import weasyprint
@@ -194,14 +234,14 @@ async def post_route_pdf(req: RouteRequest):
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={req.from_field}-{req.to_icao}-kneeboard.pdf"}
+            headers={"Content-Disposition": f"attachment; filename={file_label}-kneeboard.pdf"}
         )
     except Exception:
         return StreamingResponse(
             io.BytesIO(html_content.encode()),
             media_type="text/html",
             headers={
-                "Content-Disposition": f"attachment; filename={req.from_field}-{req.to_icao}-kneeboard.html",
+                "Content-Disposition": f"attachment; filename={file_label}-kneeboard.html",
                 "X-FlightStrip-Note": "WeasyPrint unavailable on this platform; open HTML in browser and Ctrl+P"
             }
         )
