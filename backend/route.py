@@ -41,7 +41,14 @@ def along_track_nm(lat, lon, lat1, lon1, lat2, lon2) -> float:
     proj_lon = lon1 + t*dy
     return haversine_nm(lat1, lon1, proj_lat, proj_lon)
 
-def get_route_airports(from_icao: str, to_icao: str, corridor_nm: float = 25) -> list:
+def get_route_airports(
+    from_icao: str,
+    to_icao: str,
+    corridor_nm: float = 25,
+    exclude_heliports: bool = True,
+    public_only: bool = True,
+    min_runway_ft: int = 0
+) -> list:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
@@ -62,10 +69,16 @@ def get_route_airports(from_icao: str, to_icao: str, corridor_nm: float = 25) ->
     min_lon = min(lon1, lon2) - pad
     max_lon = max(lon1, lon2) + pad
 
-    candidates = conn.execute(
-        "SELECT * FROM airports WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?",
-        (min_lat, max_lat, min_lon, max_lon)
-    ).fetchall()
+    filters = ["lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?"]
+    params = [min_lat, max_lat, min_lon, max_lon]
+
+    if exclude_heliports:
+        filters.append("(site_type IS NULL OR site_type != 'H')")
+    if public_only:
+        filters.append("(apt_type IS NULL OR apt_type = 'PU' OR apt_type = 'MA')")
+
+    sql = f"SELECT * FROM airports WHERE {' AND '.join(filters)}"
+    candidates = conn.execute(sql, params).fetchall()
 
     results = []
     for apt in candidates:
@@ -87,6 +100,22 @@ def get_route_airports(from_icao: str, to_icao: str, corridor_nm: float = 25) ->
                 "SELECT freq_type, frequency FROM frequencies WHERE icao=?",
                 (apt['icao'],)
             ).fetchall()]
+
+            # Max runway length and kneeboard inclusion flag
+            max_rwy = max((r['length_ft'] for r in rec['runways']), default=0)
+            rec['max_rwy_length'] = max_rwy
+
+            # Skip airports below min_runway_ft threshold
+            if min_runway_ft > 0 and max_rwy < min_runway_ft:
+                # Always include origin and destination
+                if apt['icao'] not in (from_icao.upper(), to_icao.upper()):
+                    continue
+
+            rec['kneeboard_include'] = (
+                rec.get('apt_type') in ('PU', 'MA', None) and
+                rec.get('site_type', 'A') == 'A' and
+                max_rwy >= 1500
+            ) or apt['icao'] in (from_icao.upper(), to_icao.upper())
 
             rec['metar'] = {}
             results.append(rec)

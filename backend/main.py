@@ -66,13 +66,21 @@ class RouteRequest(BaseModel):
     to_icao: str = Field(alias="to")
     corridor_nm: float = 25
     mode: str = "vfr"
+    exclude_heliports: bool = True
+    public_only: bool = True
+    min_runway_ft: int = 0
 
     model_config = {"populate_by_name": True}
 
 @app.post("/route")
 async def post_route(req: RouteRequest):
     try:
-        airports = get_route_airports(req.from_field, req.to_icao, req.corridor_nm)
+        airports = get_route_airports(
+            req.from_field, req.to_icao, req.corridor_nm,
+            exclude_heliports=req.exclude_heliports,
+            public_only=req.public_only,
+            min_runway_ft=req.min_runway_ft
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -144,6 +152,58 @@ async def route_pdf(
             media_type="text/html",
             headers={"Content-Disposition": f"attachment; filename=flightstrip_{from_icao}_{to_icao}.html",
                      "X-FlightStrip-Note": "WeasyPrint unavailable; returning HTML for browser print"}
+        )
+
+@app.post("/route/pdf")
+async def post_route_pdf(req: RouteRequest):
+    try:
+        airports = get_route_airports(
+            req.from_field, req.to_icao, req.corridor_nm,
+            exclude_heliports=req.exclude_heliports,
+            public_only=req.public_only,
+            min_runway_ft=req.min_runway_ft
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    icao_list = [a['icao'] for a in airports]
+    metars = await get_metars(icao_list)
+    for apt in airports:
+        apt['metar'] = metars.get(apt['icao'], {'flight_category': 'UNKNOWN', 'raw_metar': 'N/A'})
+
+    from jinja2 import Environment, FileSystemLoader
+    from datetime import datetime
+    template_dir = Path(__file__).parent / "templates"
+    env = Environment(loader=FileSystemLoader(str(template_dir)))
+
+    try:
+        template = env.get_template("kneeboard.html")
+        html_content = template.render(
+            airports=airports,
+            from_icao=req.from_field.upper(),
+            to_icao=req.to_icao.upper(),
+            mode=req.mode,
+            generated_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template error: {e}")
+
+    try:
+        import weasyprint
+        pdf_bytes = weasyprint.HTML(string=html_content).write_pdf()
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={req.from_field}-{req.to_icao}-kneeboard.pdf"}
+        )
+    except Exception:
+        return StreamingResponse(
+            io.BytesIO(html_content.encode()),
+            media_type="text/html",
+            headers={
+                "Content-Disposition": f"attachment; filename={req.from_field}-{req.to_icao}-kneeboard.html",
+                "X-FlightStrip-Note": "WeasyPrint unavailable on this platform; open HTML in browser and Ctrl+P"
+            }
         )
 
 if __name__ == "__main__":
