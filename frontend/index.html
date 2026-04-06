@@ -128,7 +128,7 @@ function AirportRow({ apt, expanded, onToggle }) {
   const rowCls = isHeli
     ? "cursor-pointer italic text-gray-400 hover:bg-gray-50"
     : "cursor-pointer hover:bg-blue-50 transition-colors";
-  const COL_COUNT = 11;
+  const COL_COUNT = 10;
   const primaryFreq = apt.freq_ctaf_tower;
   const isTowered = apt.is_towered;
 
@@ -163,12 +163,6 @@ function AirportRow({ apt, expanded, onToggle }) {
           {apt.freq_atis
             ? <span className="inline-block px-1.5 py-0.5 rounded text-xs mono border bg-blue-100 text-blue-800 border-blue-200">{apt.freq_atis}</span>
             : <span className="text-gray-300 text-xs">&mdash;</span>}
-        </td>
-        <td className="px-2 py-1 text-xs whitespace-nowrap">
-          {apt.fuel_100ll && apt.fuel_jeta ? <span className="text-green-700 font-semibold">Both</span>
-           : apt.fuel_100ll ? <span className="text-green-700">100LL</span>
-           : apt.fuel_jeta ? <span className="text-blue-700">JetA</span>
-           : <span className="text-gray-300">&mdash;</span>}
         </td>
         <td className="px-2 py-1"><WxBadge category={cat}/></td>
       </tr>
@@ -244,7 +238,6 @@ function RouteTable({ airports, summary, routeLabel, mode }) {
               <th className="px-2 py-2 text-center">Pat</th>
               <th className="px-2 py-2 text-left">Freq</th>
               <th className="px-2 py-2 text-left">ATIS</th>
-              <th className="px-2 py-2 text-left">Fuel</th>
               <th className="px-2 py-2 text-left">WX</th>
             </tr>
           </thead>
