@@ -85,6 +85,11 @@ def _build_pattern_display(runways: list) -> list:
     if not runways:
         return []
 
+    # Filter out helipad runway IDs (H1, H2, etc.) — not standard traffic pattern runways
+    runways = [r for r in runways if not re.match(r'^H\d', r.get('rwy_id', ''))]
+    if not runways:
+        return []
+
     # Sort by length descending
     sorted_rwys = sorted(runways, key=lambda r: r.get('length_ft') or 0, reverse=True)
 

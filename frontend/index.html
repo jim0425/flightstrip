@@ -289,7 +289,10 @@ function App() {
       });
       if (!resp.ok) {
         const err = await resp.json().catch(()=>({detail:resp.statusText}));
-        throw new Error(err.detail||resp.statusText);
+        const detail = Array.isArray(err.detail)
+          ? err.detail.map(e => `${e.loc?.slice(-1)[0]}: ${e.msg}`).join('; ')
+          : (err.detail || resp.statusText);
+        throw new Error(detail);
       }
       setResult(await resp.json());
     } catch(e) { setError(e.message); }

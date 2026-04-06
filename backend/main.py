@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 import sqlite3, io
 
@@ -64,16 +64,25 @@ async def get_airport(icao: str):
 class RouteRequest(BaseModel):
     # Multi-waypoint: list of 2-4 ICAOs  ["KBJC", "KPUB", "KGXY"]
     waypoints: Optional[List[str]] = None
-    # Legacy single-segment (kept for backwards compat)
-    from_field: Optional[str] = Field(None, alias="from")
-    to_icao: Optional[str] = Field(None, alias="to")
+    # Legacy single-segment — populated by model_validator from "from"/"to" keys
+    from_field: Optional[str] = None
+    to_icao: Optional[str] = None
     corridor_nm: float = 25
     mode: str = "vfr"
     exclude_heliports: bool = True
     public_only: bool = True
     min_runway_ft: int = 0
 
-    model_config = {"populate_by_name": True}
+    @model_validator(mode="before")
+    @classmethod
+    def remap_from_to(cls, data):
+        """Accept legacy {"from": ..., "to": ...} keys without Pydantic alias issues."""
+        if isinstance(data, dict):
+            if "from" in data and "from_field" not in data:
+                data["from_field"] = data.pop("from")
+            if "to" in data and "to_icao" not in data:
+                data["to_icao"] = data.pop("to")
+        return data
 
     def get_waypoints(self) -> list:
         """Resolve to a list of waypoint ICAOs regardless of input style."""
