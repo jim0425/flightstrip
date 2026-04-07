@@ -1,251 +1,242 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8"/>
+<head><meta charset="UTF-8">
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; padding: 0.2in; background: #fff; }
-@page { size: 8.5in 5.5in landscape; margin: 0.25in; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    margin: 0;
+    padding: 0.2in;
+    background: #fff;
+  }
+  @page { size: 8.5in 5.5in landscape; margin: 0.25in; }
 
-.route-header {
-  display: flex; justify-content: space-between; align-items: baseline;
-  font-size: 9pt; font-weight: bold;
-  border-bottom: 1.5pt solid #111; padding-bottom: 3px; margin-bottom: 5px;
-}
-.route-header .left { font-size: 10pt; }
-.route-header .right { font-size: 8pt; color: #555; }
+  .rh {
+    display: flex; justify-content: space-between;
+    border-bottom: 1.5px solid #111; padding-bottom: 2px;
+    margin-bottom: 5px;
+  }
+  .rh .l { font-size: 8px; font-weight: bold; }
+  .rh .r { font-size: 7px; color: #555; }
 
-table { width: 580px; border-collapse: collapse; table-layout: fixed; }
+  table {
+    width: 100%; border-collapse: collapse;
+    table-layout: fixed; border: 1px solid #444;
+  }
 
-/* Column widths */
-col.c-icao    { width: 32px; }
-col.c-name    { width: 36px; }
-col.c-elev    { width: 40px; }
-col.c-len     { width: 40px; }
-col.c-pat     { width: 72px; }
-col.c-ctaf    { width: 50px; }
-col.c-atis    { width: 50px; }
-col.c-gnd     { width: 50px; }
-col.c-appr    { width: 50px; }
-col.c-clr     { width: 50px; }
-col.c-notes   { width: 98px; }
+  col.ci  { width: 32px; }
+  col.cn  { width: 36px; }
+  col.cet { width: 40px; }
+  col.cl  { width: 40px; }
+  col.cp  { width: 72px; }
+  col.cf  { width: 50px; }
+  col.cco { width: 98px; }
 
-/* Header row */
-thead tr { height: 68px; }
-thead th {
-  background: #111;
-  color: #fff;
-  font-size: 7.5pt;
-  font-family: Arial;
-  font-weight: bold;
-  vertical-align: bottom;
-  padding: 2px 2px 4px 2px;
-  border-right: 0.5px solid #444;
-  overflow: hidden;
-  white-space: nowrap;
-}
-thead th.freq-hdr {
-  background: #0d2b5e;
-  color: #90caf9;
-}
-thead th.rotate-hdr {
-  vertical-align: bottom;
-  padding-bottom: 4px;
-}
-thead th .rotated {
-  display: inline-block;
-  transform: rotate(-45deg);
-  transform-origin: left bottom;
-  white-space: nowrap;
-  margin-left: 8px;
-  margin-bottom: 2px;
-}
-thead th.pat-hdr { vertical-align: bottom; }
-thead th.pat-hdr .sub { font-size: 6pt; color: #aaa; display: block; }
+  thead th {
+    background: #111; color: #eee;
+    font-family: Arial; font-weight: bold;
+    border-right: 0.5px solid #333;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    overflow: visible; vertical-align: bottom; height: 68px;
+  }
+  thead th:last-child { border-right: none; }
 
-/* Data rows */
-tbody td {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 10px;
-  font-weight: bold;
-  vertical-align: top;
-  padding: 2px 2px;
-  border-bottom: 0.5px solid #ccc;
-  border-right: 0.5px solid #e0e0e0;
-  line-height: 1.45;
-  overflow: visible;
-}
-tbody td.name-cell {
-  font-family: Arial;
-  overflow: hidden;
-}
-tbody td.notes-cell {
-  font-family: Arial;
-  font-weight: normal;
-  font-size: 8.5px;
-  line-height: 1.5;
-  overflow: hidden;
-}
+  thead th.nh {
+    font-size: 6.5px; padding: 2px 2px;
+    vertical-align: bottom; white-space: nowrap;
+  }
+  thead th.nh .sub {
+    display: block; font-size: 5.5px;
+    color: #aaa; font-weight: normal;
+  }
+  thead th.dh { padding: 0 0 2px 2px; overflow: visible; }
+  thead th.dh .rot {
+    display: inline-block; transform: rotate(-45deg);
+    transform-origin: left bottom; white-space: nowrap;
+    font-size: 6.5px; color: #eee; line-height: 1;
+  }
+  thead th.fh { background: #0d2b5e; padding: 0 0 2px 2px; overflow: visible; }
+  thead th.fh .rot {
+    display: inline-block; transform: rotate(-45deg);
+    transform-origin: left bottom; white-space: nowrap;
+    font-size: 6.5px; color: #90caf9; line-height: 1;
+  }
 
-/* Alternating rows */
-tbody tr:nth-child(odd)  td { background: #fff; }
-tbody tr:nth-child(even) td { background: #efefec; }
+  tbody tr { border-bottom: 0.5px solid #ccc; }
+  tbody tr.e td {
+    background: #efefec;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  tbody td {
+    padding: 2px 3px; vertical-align: top;
+    border-right: 0.5px solid #ccc; font-weight: bold;
+    font-size: 10px; font-family: 'Courier New', Courier, monospace;
+    overflow: visible; line-height: 1.45;
+  }
+  tbody td:last-child { border-right: none; }
+  tbody td.tnm { overflow: hidden; }
 
-/* Freq cell backgrounds */
-tbody tr:nth-child(odd)  td.freq-cell { background: #e8f0fe; }
-tbody tr:nth-child(even) td.freq-cell { background: #d2e3fc; }
+  .icao { color: #1040bb; font-size: 11px; font-weight: bold; }
+  .nm   { font-family: Arial; font-size: 7px; font-weight: bold;
+          display: block; white-space: nowrap; overflow: hidden; }
+  .cy   { font-family: Arial; font-size: 5.5px; font-weight: bold;
+          color: #666; display: block; }
+  .stk  { display: block; }
 
-/* ICAO cell */
-td.icao-cell {
-  font-size: 11px;
-  color: #1040bb;
-  font-weight: bold;
-  font-family: 'Courier New';
-}
-/* Name lines */
-.name-line { font-size: 7px; font-weight: bold; white-space: nowrap; overflow: hidden; font-family: Arial; }
-.city-line { font-size: 5.5px; font-weight: bold; color: #666; font-family: Arial; }
+  td.fc {
+    background: #e8f0fe;
+    font-size: 9px; font-family: 'Courier New', monospace;
+    font-weight: bold; padding: 2px 3px;
+  }
+  tbody tr.e td.fc {
+    background: #d2e3fc;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .ftw { color: #1040bb; }
+  .fct { color: #92400e; }
+  .fnd { color: #bbb; }
 
-/* Freq colors */
-.freq-tower   { color: #1040bb; }
-.freq-ctaf    { color: #92400e; }
-.freq-na      { color: #bbb; }
+  td.nt {
+    font-family: Arial, sans-serif; font-size: 8.5px;
+    font-weight: normal; line-height: 1.5; overflow: hidden;
+  }
 
-/* Legend */
-.legend {
-  margin-top: 4px;
-  font-family: Arial;
-  font-size: 7.5px;
-  color: #555;
-  border-top: 0.5pt solid #ccc;
-  padding-top: 2px;
-}
-
-/* Print */
-@media print {
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
+  .leg {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    font-size: 7.5px; font-family: Arial; align-items: center;
+    padding-top: 3px; border-top: 0.5px solid #ccc; margin-top: 2px;
+  }
 </style>
 </head>
 <body>
 
-<div class="route-header">
-  <span class="left">&#9992; FlightStrip &nbsp;|&nbsp; {{ route_label }} &nbsp;|&nbsp; {{ airports|length }} airports &nbsp;|&nbsp; {{ mode|upper }}</span>
-  <span class="right">{{ generated_date }}</span>
+<div class="rh">
+  <span class="l">FlightStrip &nbsp;|&nbsp; {{ from_icao }} &rarr; {{ to_icao }}
+    &nbsp;|&nbsp; {{ airports|length }} airports
+    &nbsp;|&nbsp; {{ mode|upper }} mode</span>
+  <span class="r">Generated {{ generated_date|default('') }}</span>
 </div>
 
 <table>
-<colgroup>
-  <col class="c-icao"/><col class="c-name"/><col class="c-elev"/>
-  <col class="c-len"/><col class="c-pat"/><col class="c-ctaf"/>
-  <col class="c-atis"/><col class="c-gnd"/><col class="c-appr"/>
-  <col class="c-clr"/><col class="c-notes"/>
-</colgroup>
-<thead>
-  <tr>
-    <th>ICAO</th>
-    <th>Name</th>
-    <th class="rotate-hdr"><span class="rotated">Elev / TPA</span></th>
-    <th class="rotate-hdr"><span class="rotated">Length (ft)</span></th>
-    <th class="pat-hdr">Pattern &amp; RWY<span class="sub">colon=published side</span></th>
-    <th class="freq-hdr rotate-hdr"><span class="rotated">CTAF / Tower</span></th>
-    <th class="freq-hdr rotate-hdr"><span class="rotated">ATIS / AWOS</span></th>
-    <th class="freq-hdr rotate-hdr"><span class="rotated">Ground</span></th>
-    <th class="freq-hdr rotate-hdr"><span class="rotated">Appr &amp; Dept</span></th>
-    <th class="freq-hdr rotate-hdr"><span class="rotated">Clearance</span></th>
-    <th>Notes &amp; Approaches</th>
-  </tr>
-</thead>
-<tbody>
-{% for apt in airports %}
-{% if apt.kneeboard_include %}
-{% set tpa = apt.tpa_ft if apt.tpa_ft else (apt.elevation_ft + 1000) %}
-<tr>
-  <!-- ICAO -->
-  <td class="icao-cell">{{ apt.icao }}</td>
+  <colgroup>
+    <col class="ci"><col class="cn"><col class="cet">
+    <col class="cl"><col class="cp">
+    <col class="cf"><col class="cf"><col class="cf"><col class="cf"><col class="cf">
+    <col class="cco">
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="nh">ICAO</th>
+      <th class="nh">Name</th>
+      <th class="dh"><div class="rot">Elev / TPA</div></th>
+      <th class="dh"><div class="rot">Length (ft)</div></th>
+      <th class="nh">Pattern &amp; RWY<span class="sub">colon=published side</span></th>
+      <th class="fh"><div class="rot">CTAF / Tower</div></th>
+      <th class="fh"><div class="rot">ATIS / AWOS</div></th>
+      <th class="fh"><div class="rot">Ground</div></th>
+      <th class="fh"><div class="rot">Appr &amp; Dept</div></th>
+      <th class="fh"><div class="rot">Clearance Del</div></th>
+      <th class="nh">Notes &amp; Approaches</th>
+    </tr>
+  </thead>
+  <tbody>
 
-  <!-- Name / City -->
-  <td class="name-cell">
-    <div class="name-line">{{ apt.name_abbrev or apt.name[:13] }}</div>
-    <div class="city-line">{{ apt.city_abbrev or apt.city[:10] }}</div>
-  </td>
+  {% for apt in airports %}
+  {% if apt.kneeboard_include %}
+  {% set row_class = 'e' if loop.index is even else '' %}
 
-  <!-- Elev / TPA -->
-  <td>{{ "{:,}".format(apt.elevation_ft) }}<br/>&#8593;{{ "{:,}".format(tpa) }}</td>
+  <tr class="{{ row_class }}">
 
-  <!-- Runway lengths stacked -->
-  <td>
-    {% for rwy in apt.runways | sort(attribute='length_ft', reverse=True) %}
-    {{ "{:,}".format(rwy.length_ft) }}<br/>
-    {% endfor %}
-  </td>
+    <td><span class="icao">{{ apt.icao }}</span></td>
 
-  <!-- Pattern & RWY -->
-  <td>
-    {% for pd in apt.pattern_display %}
-    {{ pd }}<br/>
-    {% else %}
-    &#8212;
-    {% endfor %}
-  </td>
+    <td class="tnm">
+      <span class="nm">{{ apt.name_abbrev }}</span>
+      <span class="cy">{{ apt.city_abbrev }}</span>
+    </td>
 
-  <!-- CTAF / Tower -->
-  <td class="freq-cell">
-    {% if apt.freq_ctaf_tower %}
-      <span class="{% if apt.is_towered %}freq-tower{% else %}freq-ctaf{% endif %}">{{ apt.freq_ctaf_tower }}</span>
-    {% else %}
-      <span class="freq-na">&#8212;&#8212;</span>
-    {% endif %}
-  </td>
+    <td>
+      {{ "{:,}".format(apt.elevation_ft|int) }}<br>
+      &uarr;{{ "{:,}".format((apt.tpa_ft if apt.tpa_ft else apt.elevation_ft + 1000)|int) }}
+    </td>
 
-  <!-- ATIS / AWOS -->
-  <td class="freq-cell">
-    {% if apt.freq_atis %}<span>{{ apt.freq_atis }}</span>
-    {% else %}<span class="freq-na">&#8212;&#8212;</span>{% endif %}
-  </td>
+    <td>
+      {% for rwy in apt.runways|sort(attribute='length_ft', reverse=True) %}
+        <span class="stk">{{ "{:,}".format(rwy.length_ft|int) }}</span>
+      {% endfor %}
+    </td>
 
-  <!-- Ground -->
-  <td class="freq-cell">
-    {% if apt.freq_ground %}<span>{{ apt.freq_ground }}</span>
-    {% else %}<span class="freq-na">&#8212;&#8212;</span>{% endif %}
-  </td>
+    <td>
+      {% for pat in apt.pattern_display %}
+        <span class="stk">{{ pat }}</span>
+      {% endfor %}
+    </td>
 
-  <!-- Approach & Departure -->
-  <td class="freq-cell">
-    {% if apt.freq_approach %}<span>{{ apt.freq_approach }}</span>
-    {% else %}<span class="freq-na">&#8212;&#8212;</span>{% endif %}
-  </td>
-
-  <!-- Clearance -->
-  <td class="freq-cell">
-    {% if apt.freq_clearance %}<span>{{ apt.freq_clearance }}</span>
-    {% else %}<span class="freq-na">&#8212;&#8212;</span>{% endif %}
-  </td>
-
-  <!-- Notes -->
-  <td class="notes-cell">
-    {% set tpa_agl = tpa - apt.elevation_ft %}
-    {% if apt.tpa_ft and tpa_agl != 1000 %}TPA {{ tpa_agl }} AGL<br/>{% endif %}
-    {% for rwy in apt.runways %}
-      {% set surf = rwy.surface | upper if rwy.surface else '' %}
-      {% if surf and 'ASPH' not in surf and 'CONC' not in surf %}
-        Srf:{{ surf[:4] }}<br/>
+    <td class="fc">
+      {% if apt.freq_ctaf_tower %}
+        {% if apt.is_towered %}
+          <span class="ftw">{{ apt.freq_ctaf_tower }}</span>
+        {% else %}
+          <span class="fct">{{ apt.freq_ctaf_tower }}</span>
+        {% endif %}
+      {% else %}
+        <span class="fnd">&mdash;&mdash;</span>
       {% endif %}
-    {% endfor %}
-    {% if apt.has_ils %}ILS avail<br/>{% endif %}
-  </td>
-</tr>
-{% endif %}
-{% endfor %}
-</tbody>
+    </td>
+
+    <td class="fc">
+      {% if apt.freq_atis %}{{ apt.freq_atis }}
+      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
+    </td>
+
+    <td class="fc">
+      {% if apt.freq_ground %}{{ apt.freq_ground }}
+      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
+    </td>
+
+    <td class="fc">
+      {% if apt.freq_approach %}{{ apt.freq_approach }}
+      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
+    </td>
+
+    <td class="fc">
+      {% if apt.freq_clearance %}{{ apt.freq_clearance }}
+      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
+    </td>
+
+    <td class="nt">
+      {%- set notes = [] -%}
+      {%- if apt.tpa_ft and apt.tpa_ft != (apt.elevation_ft + 1000) -%}
+        {%- set _ = notes.append('TPA ' ~ (apt.tpa_ft - apt.elevation_ft)|string ~ ' AGL') -%}
+      {%- endif -%}
+      {%- set ns_srf = namespace(done=false) -%}
+      {%- for rwy in apt.runways -%}
+        {%- if not ns_srf.done and rwy.surface and rwy.surface|upper not in ('ASPH','CONC','HARD','ASPH-G','CONC-G') -%}
+          {%- set _ = notes.append('Srf: ' ~ rwy.surface) -%}
+          {%- set ns_srf.done = true -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if apt.has_ils -%}
+        {%- set _ = notes.append('ILS avail') -%}
+      {%- endif -%}
+      {{ notes|join('<br>')|safe }}
+    </td>
+
+  </tr>
+
+  {% endif %}
+  {% endfor %}
+
+  </tbody>
 </table>
 
-<div class="legend">
-  FREQ: <span style="color:#1040bb;font-weight:bold">&#9632;</span> Tower (blue) &nbsp;
-  <span style="color:#92400e;font-weight:bold">&#9632;</span> CTAF/UNICOM (amber) &nbsp;
-  <span style="color:#bbb">&#9632;</span> N/A &nbsp;|&nbsp;
-  PAT: colon=published side &nbsp;|&nbsp; no colon=conv. left
+<div class="leg">
+  <strong>FREQ:</strong>
+  <span style="color:#1040bb;font-weight:bold;">&#9632; Tower</span>
+  <span style="color:#92400e;font-weight:bold;">&#9632; CTAF/UNICOM</span>
+  <span style="color:#bbb;font-weight:bold;">&#9632; N/A</span>
+  &nbsp;&nbsp;
+  <strong>PAT:</strong>
+  <span>colon=published side &nbsp;|&nbsp; no colon=conv. left &nbsp;|&nbsp; CW=calm wind rwy</span>
 </div>
 
 </body>

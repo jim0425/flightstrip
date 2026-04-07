@@ -150,10 +150,11 @@ def _build_pattern_display(runways: list) -> list:
     return [s for _, s in paired]
 
 def _get_typed_freq(frequencies: list, types: list):
-    """Return first frequency matching any of the given freq_types."""
+    """Return first frequency matching any of the given freq_types (exact or prefix match)."""
     types_upper = [t.upper() for t in types]
     for f in frequencies:
-        if f.get('freq_type', '').upper() in types_upper:
+        ft = f.get('freq_type', '').upper()
+        if ft in types_upper or any(ft.startswith(t) for t in types_upper):
             return f.get('frequency')
     return None
 
