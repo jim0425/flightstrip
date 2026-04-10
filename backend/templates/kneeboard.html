@@ -2,242 +2,184 @@
 <html>
 <head><meta charset="UTF-8">
 <style>
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 10px;
-    margin: 0;
-    padding: 0.2in;
-    background: #fff;
+  body { background:#555; display:flex; flex-direction:column; align-items:center; padding:24px 20px; font-family:Arial,sans-serif; gap:24px; }
+  @media print {
+    body { background:#fff; display:block; padding:0; gap:0; }
+    .sheet { border:none !important; page-break-after:always; }
+    .sheet:last-child { page-break-after:avoid; }
+    @page { size:11in 8.5in landscape; margin:0; }
   }
-  @page { size: 8.5in 5.5in landscape; margin: 0.25in; }
-
-  .rh {
-    display: flex; justify-content: space-between;
-    border-bottom: 1.5px solid #111; padding-bottom: 2px;
-    margin-bottom: 5px;
-  }
-  .rh .l { font-size: 8px; font-weight: bold; }
-  .rh .r { font-size: 7px; color: #555; }
-
-  table {
-    width: 100%; border-collapse: collapse;
-    table-layout: fixed; border: 1px solid #444;
-  }
-
-  col.ci  { width: 32px; }
-  col.cn  { width: 36px; }
-  col.cet { width: 40px; }
-  col.cl  { width: 40px; }
-  col.cp  { width: 72px; }
-  col.cf  { width: 50px; }
-  col.cco { width: 98px; }
-
-  thead th {
-    background: #111; color: #eee;
-    font-family: Arial; font-weight: bold;
-    border-right: 0.5px solid #333;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    overflow: visible; vertical-align: bottom; height: 68px;
-  }
-  thead th:last-child { border-right: none; }
-
-  thead th.nh {
-    font-size: 6.5px; padding: 2px 2px;
-    vertical-align: bottom; white-space: nowrap;
-  }
-  thead th.nh .sub {
-    display: block; font-size: 5.5px;
-    color: #aaa; font-weight: normal;
-  }
-  thead th.dh { padding: 0 0 2px 2px; overflow: visible; }
-  thead th.dh .rot {
-    display: inline-block; transform: rotate(-45deg);
-    transform-origin: left bottom; white-space: nowrap;
-    font-size: 6.5px; color: #eee; line-height: 1;
-  }
-  thead th.fh { background: #0d2b5e; padding: 0 0 2px 2px; overflow: visible; }
-  thead th.fh .rot {
-    display: inline-block; transform: rotate(-45deg);
-    transform-origin: left bottom; white-space: nowrap;
-    font-size: 6.5px; color: #90caf9; line-height: 1;
-  }
-
-  tbody tr { border-bottom: 0.5px solid #ccc; }
-  tbody tr.e td {
-    background: #efefec;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  tbody td {
-    padding: 2px 3px; vertical-align: top;
-    border-right: 0.5px solid #ccc; font-weight: bold;
-    font-size: 10px; font-family: 'Courier New', Courier, monospace;
-    overflow: visible; line-height: 1.45;
-  }
-  tbody td:last-child { border-right: none; }
-  tbody td.tnm { overflow: hidden; }
-
-  .icao { color: #1040bb; font-size: 11px; font-weight: bold; }
-  .nm   { font-family: Arial; font-size: 7px; font-weight: bold;
-          display: block; white-space: nowrap; overflow: hidden; }
-  .cy   { font-family: Arial; font-size: 5.5px; font-weight: bold;
-          color: #666; display: block; }
-  .stk  { display: block; }
-
-  td.fc {
-    background: #e8f0fe;
-    font-size: 9px; font-family: 'Courier New', monospace;
-    font-weight: bold; padding: 2px 3px;
-  }
-  tbody tr.e td.fc {
-    background: #d2e3fc;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .ftw { color: #1040bb; }
-  .fct { color: #92400e; }
-  .fnd { color: #bbb; }
-
-  td.nt {
-    font-family: Arial, sans-serif; font-size: 8.5px;
-    font-weight: normal; line-height: 1.5; overflow: hidden;
-  }
-
-  .leg {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    font-size: 7.5px; font-family: Arial; align-items: center;
-    padding-top: 3px; border-top: 0.5px solid #ccc; margin-top: 2px;
-  }
+  .sheet { width:1056px; height:816px; background:#d8d8d8; border:2px solid #888; box-sizing:border-box; display:flex; flex-direction:row; flex-shrink:0; position:relative; }
+  .fold { position:absolute; left:528px; top:0; bottom:0; border-left:1px dashed #aaa; z-index:10; pointer-events:none; }
+  .panel { width:528px; height:816px; box-sizing:border-box; position:relative; flex-shrink:0; }
+  .panel.empty { background:#c8c8c8; }
+  .chart { position:absolute; top:24px; left:24px; width:480px; height:768px; background:#fff; box-sizing:border-box; display:flex; flex-direction:column; padding:4px 4px 3px 4px; gap:2px; overflow:hidden; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .rh { display:flex; justify-content:space-between; border-bottom:1.5px solid #111; padding-bottom:2px; flex-shrink:0; }
+  .rh .l { font-size:7px; font-weight:bold; }
+  .rh .r { font-size:6.5px; color:#555; }
+  table { border-collapse:collapse; table-layout:fixed; border:1px solid #444; width:472px; flex-shrink:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  col.ci{width:30px} col.cn{width:40px} col.cet{width:33px} col.cl{width:33px} col.cp{width:60px} col.cf{width:41px} col.cco{width:69px}
+  thead th { background:#111; color:#eee; font-family:Arial; font-weight:bold; border-right:0.5px solid #333; -webkit-print-color-adjust:exact; print-color-adjust:exact; overflow:visible; vertical-align:bottom; height:68px; }
+  thead th:last-child { border-right:none; }
+  thead th.nh { font-size:6.5px; padding:2px 2px; vertical-align:bottom; white-space:nowrap; }
+  thead th.nh .sub { display:block; font-size:5.5px; color:#aaa; font-weight:normal; }
+  thead th.dh { padding:0 0 2px 2px; overflow:visible; }
+  thead th.dh .rot { display:inline-block; transform:rotate(-45deg); transform-origin:left bottom; white-space:nowrap; font-size:6.5px; color:#eee; line-height:1; }
+  thead th.fh { background:#0d2b5e; padding:0 0 2px 2px; overflow:visible; }
+  thead th.fh .rot { display:inline-block; transform:rotate(-45deg); transform-origin:left bottom; white-space:nowrap; font-size:6.5px; color:#90caf9; line-height:1; }
+  tbody tr { border-bottom:0.5px solid #ccc; }
+  tbody tr.e td { background:#efefec; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  tbody td { padding:2px 3px; vertical-align:middle; border-right:0.5px solid #ccc; font-weight:bold; font-size:9px; font-family:'Courier New',Courier,monospace; overflow:hidden; line-height:1.45; box-sizing:border-box; }
+  tbody td:last-child { border-right:none; }
+  .icao { color:#1040bb; font-size:10px; font-weight:bold; }
+  .nm   { font-family:Arial; font-size:6.5px; font-weight:bold; display:block; white-space:nowrap; overflow:hidden; }
+  .cy   { font-family:Arial; font-size:5px; font-weight:bold; color:#666; display:block; }
+  .stk  { display:block; }
+  td.fc { background:#e8f0fe; font-size:8.5px; font-family:'Courier New',monospace; font-weight:bold; padding:2px 2px; }
+  tbody tr.e td.fc { background:#d2e3fc; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .ftw{color:#1040bb} .fct{color:#92400e} .fnd{color:#bbb}
+  td.nt { font-family:Arial,sans-serif; font-size:8px; font-weight:normal; line-height:1.5; overflow:hidden; vertical-align:top; padding-top:3px; }
+  .leg { display:flex; gap:6px; flex-wrap:wrap; font-size:7px; font-family:Arial; align-items:center; flex-shrink:0; padding-top:3px; border-top:0.5px solid #ccc; }
 </style>
 </head>
 <body>
 
-<div class="rh">
-  <span class="l">FlightStrip &nbsp;|&nbsp; {{ from_icao }} &rarr; {{ to_icao }}
-    &nbsp;|&nbsp; {{ airports|length }} airports
-    &nbsp;|&nbsp; {{ mode|upper }} mode</span>
-  <span class="r">Generated {{ generated_date|default('') }}</span>
+{#
+  Row height algorithm (greedy natural-height packing):
+    - Each airport has kboard_lines: pre-computed in Python, wrapping-aware, min 3.
+    - PX_PER_LINE = 20px: natural pixel height per visual line.
+    - Pack by pixel budget: add airport to current panel if cur_px + row_px ≤ TBODY_PX,
+      otherwise flush panel and start a new one.
+    - Rendering: each row renders at kboard_lines × PX_PER_LINE exactly.
+      No proportional scaling — rows stay at their natural height; panels may have
+      whitespace at the bottom, but content is never stretched or squeezed.
+#}
+{%- set TBODY_PX   = 661 -%}
+{%- set PX_PER_LINE = 20 -%}
+
+{%- set all_apts = airports | selectattr('kneeboard_include') | list -%}
+
+{# ── STEP 1: greedy pixel-budget packing ── #}
+{%- set ns = namespace(panels=[], cur=[], cur_px=0) -%}
+{%- for apt in all_apts -%}
+  {%- set lines  = apt.kboard_lines | default(3) -%}
+  {%- set row_px = lines * PX_PER_LINE -%}
+  {%- if ns.cur | length > 0 and ns.cur_px + row_px > TBODY_PX -%}
+    {%- set ns.panels = ns.panels + [ns.cur] -%}
+    {%- set ns.cur    = [apt] -%}
+    {%- set ns.cur_px = row_px -%}
+  {%- else -%}
+    {%- set ns.cur    = ns.cur + [apt] -%}
+    {%- set ns.cur_px = ns.cur_px + row_px -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if ns.cur | length > 0 -%}
+  {%- set ns.panels = ns.panels + [ns.cur] -%}
+{%- endif -%}
+
+{%- set num_panels  = ns.panels | length -%}
+{%- set total_sheets = ((num_panels / 2) | round(0,'ceil')) | int -%}
+
+{# ── length formatter: ≥10,000 ft → "10K", "11.5K" etc. ── #}
+{%- macro fmt_len(ft) -%}
+  {%- set v = ft | int -%}
+  {%- if v >= 10000 -%}
+    {%- set k = (v / 1000) | round(1) | string -%}
+    {%- if k.endswith('.0') -%}{{ k[:-2] }}K{%- else -%}{{ k }}K{%- endif -%}
+  {%- else -%}
+    {{ "{:,}".format(v) }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{# ── STEP 2: render macro ── #}
+{% macro render_panel(apts, page_num) %}
+
+<div class="panel">
+  <div class="chart">
+    <div class="rh">
+      <span class="l">FlightStrip &nbsp;|&nbsp; {{ from_icao }} &rarr; {{ to_icao }}
+        &nbsp;|&nbsp; {{ distance_nm }} nm &nbsp;|&nbsp; VFR
+        &nbsp;|&nbsp; {{ corridor_nm | default(25) }} nm corridor</span>
+      <span class="r">{{ generated_date | default('') }} &nbsp; Pg {{ page_num }}/{{ num_panels }}</span>
+    </div>
+    <table>
+      <colgroup>
+        <col class="ci"><col class="cn"><col class="cet"><col class="cl"><col class="cp">
+        <col class="cf"><col class="cf"><col class="cf"><col class="cf"><col class="cf">
+        <col class="cco">
+      </colgroup>
+      <thead><tr>
+        <th class="nh">ICAO</th>
+        <th class="nh">Name</th>
+        <th class="dh"><div class="rot">Elev / TPA</div></th>
+        <th class="dh"><div class="rot">Length (ft)</div></th>
+        <th class="nh">Pattern &amp; RWY<span class="sub">colon=published side</span></th>
+        <th class="fh"><div class="rot">CTAF / Tower</div></th>
+        <th class="fh"><div class="rot">ATIS / AWOS</div></th>
+        <th class="fh"><div class="rot">Ground</div></th>
+        <th class="fh"><div class="rot">Appr &amp; Dept</div></th>
+        <th class="fh"><div class="rot">Clearance Del</div></th>
+        <th class="nh">Notes</th>
+      </tr></thead>
+      <tbody>
+        {% for apt in apts %}
+        {%- set lines = apt.kboard_lines | default(3) -%}
+        {%- set row_h = lines * 20 -%}
+        {% set row_class = 'e' if loop.index is even else '' %}
+        <tr class="{{ row_class }}" style="height:{{ row_h }}px;">
+          <td><span class="icao">{{ apt.icao }}</span></td>
+          <td><span class="nm">{{ apt.name_abbrev }}</span><span class="cy">{{ apt.city_abbrev }}</span></td>
+          <td>{{ apt.elevation_ft|int }}<br>&uarr;{{ (apt.tpa_ft if apt.tpa_ft else apt.elevation_ft + 1000)|int }}</td>
+          <td>{% for rwy in apt.runways|sort(attribute='length_ft',reverse=True) %}<span class="stk">{{ fmt_len(rwy.length_ft) }}</span>{% endfor %}</td>
+          <td>{% for pat in apt.pattern_display %}<span class="stk">{{ pat }}</span>{% endfor %}</td>
+          <td class="fc">{% if apt.freq_ctaf_tower %}{% if apt.is_towered %}<span class="ftw">{{ apt.freq_ctaf_tower }}</span>{% else %}<span class="fct">{{ apt.freq_ctaf_tower }}</span>{% endif %}{% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}</td>
+          <td class="fc">{% if apt.freq_atis %}{{ apt.freq_atis }}{% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}</td>
+          <td class="fc">{% if apt.freq_ground %}{{ apt.freq_ground }}{% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}</td>
+          <td class="fc">{% if apt.freq_approach %}{{ apt.freq_approach }}{% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}</td>
+          <td class="fc">{% if apt.freq_clearance %}{{ apt.freq_clearance }}{% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}</td>
+          <td class="nt">
+            {%- set notes = [] -%}
+            {%- if apt.calm_wind_runway -%}{%- set _ = notes.append('CW: '~apt.calm_wind_runway) -%}{%- endif -%}
+            {%- if apt.preferred_runway -%}{%- set _ = notes.append('Pref: '~apt.preferred_runway) -%}{%- endif -%}
+            {%- set ns_dirt = namespace(rwys=[]) -%}
+            {%- for rwy in apt.runways -%}
+              {%- if rwy.surface -%}
+                {%- set srf = rwy.surface|upper -%}
+                {%- if not (srf.startswith('ASPH') or srf.startswith('CONC') or srf.startswith('HARD') or srf.startswith('PEM') or srf.startswith('PFC') or srf.startswith('MACA') or srf.startswith('TARMAC') or srf.startswith('BITU') or srf.startswith('MACADAM')) -%}
+                  {%- set ns_dirt.rwys = ns_dirt.rwys + [rwy.rwy_id] -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- if ns_dirt.rwys -%}{%- set _ = notes.append('Dirt: '~(ns_dirt.rwys|join(', '))) -%}{%- endif -%}
+            {%- if apt.approach_notes -%}{%- set _ = notes.append(apt.approach_notes) -%}{%- endif -%}
+            {{ notes|join('<br>')|safe }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="leg">
+      <strong>FREQ:</strong>
+      <span style="color:#1040bb;font-weight:bold;">&#9632; Tower</span>
+      <span style="color:#92400e;font-weight:bold;">&#9632; CTAF/UNICOM</span>
+      <span style="color:#bbb;font-weight:bold;">&#9632; N/A</span>
+      &nbsp;&nbsp;<strong>PAT:</strong>
+      <span>no suffix=conv. left &nbsp;|&nbsp; :R=published right &nbsp;|&nbsp; L=left when partner is :R</span>
+    </div>
+  </div>
 </div>
+{% endmacro %}
 
-<table>
-  <colgroup>
-    <col class="ci"><col class="cn"><col class="cet">
-    <col class="cl"><col class="cp">
-    <col class="cf"><col class="cf"><col class="cf"><col class="cf"><col class="cf">
-    <col class="cco">
-  </colgroup>
-  <thead>
-    <tr>
-      <th class="nh">ICAO</th>
-      <th class="nh">Name</th>
-      <th class="dh"><div class="rot">Elev / TPA</div></th>
-      <th class="dh"><div class="rot">Length (ft)</div></th>
-      <th class="nh">Pattern &amp; RWY<span class="sub">colon=published side</span></th>
-      <th class="fh"><div class="rot">CTAF / Tower</div></th>
-      <th class="fh"><div class="rot">ATIS / AWOS</div></th>
-      <th class="fh"><div class="rot">Ground</div></th>
-      <th class="fh"><div class="rot">Appr &amp; Dept</div></th>
-      <th class="fh"><div class="rot">Clearance Del</div></th>
-      <th class="nh">Notes &amp; Approaches</th>
-    </tr>
-  </thead>
-  <tbody>
-
-  {% for apt in airports %}
-  {% if apt.kneeboard_include %}
-  {% set row_class = 'e' if loop.index is even else '' %}
-
-  <tr class="{{ row_class }}">
-
-    <td><span class="icao">{{ apt.icao }}</span></td>
-
-    <td class="tnm">
-      <span class="nm">{{ apt.name_abbrev }}</span>
-      <span class="cy">{{ apt.city_abbrev }}</span>
-    </td>
-
-    <td>
-      {{ "{:,}".format(apt.elevation_ft|int) }}<br>
-      &uarr;{{ "{:,}".format((apt.tpa_ft if apt.tpa_ft else apt.elevation_ft + 1000)|int) }}
-    </td>
-
-    <td>
-      {% for rwy in apt.runways|sort(attribute='length_ft', reverse=True) %}
-        <span class="stk">{{ "{:,}".format(rwy.length_ft|int) }}</span>
-      {% endfor %}
-    </td>
-
-    <td>
-      {% for pat in apt.pattern_display %}
-        <span class="stk">{{ pat }}</span>
-      {% endfor %}
-    </td>
-
-    <td class="fc">
-      {% if apt.freq_ctaf_tower %}
-        {% if apt.is_towered %}
-          <span class="ftw">{{ apt.freq_ctaf_tower }}</span>
-        {% else %}
-          <span class="fct">{{ apt.freq_ctaf_tower }}</span>
-        {% endif %}
-      {% else %}
-        <span class="fnd">&mdash;&mdash;</span>
-      {% endif %}
-    </td>
-
-    <td class="fc">
-      {% if apt.freq_atis %}{{ apt.freq_atis }}
-      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
-    </td>
-
-    <td class="fc">
-      {% if apt.freq_ground %}{{ apt.freq_ground }}
-      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
-    </td>
-
-    <td class="fc">
-      {% if apt.freq_approach %}{{ apt.freq_approach }}
-      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
-    </td>
-
-    <td class="fc">
-      {% if apt.freq_clearance %}{{ apt.freq_clearance }}
-      {% else %}<span class="fnd">&mdash;&mdash;</span>{% endif %}
-    </td>
-
-    <td class="nt">
-      {%- set notes = [] -%}
-      {%- if apt.tpa_ft and apt.tpa_ft != (apt.elevation_ft + 1000) -%}
-        {%- set _ = notes.append('TPA ' ~ (apt.tpa_ft - apt.elevation_ft)|string ~ ' AGL') -%}
-      {%- endif -%}
-      {%- set ns_srf = namespace(done=false) -%}
-      {%- for rwy in apt.runways -%}
-        {%- if not ns_srf.done and rwy.surface and rwy.surface|upper not in ('ASPH','CONC','HARD','ASPH-G','CONC-G') -%}
-          {%- set _ = notes.append('Srf: ' ~ rwy.surface) -%}
-          {%- set ns_srf.done = true -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {%- if apt.has_ils -%}
-        {%- set _ = notes.append('ILS avail') -%}
-      {%- endif -%}
-      {{ notes|join('<br>')|safe }}
-    </td>
-
-  </tr>
-
-  {% endif %}
-  {% endfor %}
-
-  </tbody>
-</table>
-
-<div class="leg">
-  <strong>FREQ:</strong>
-  <span style="color:#1040bb;font-weight:bold;">&#9632; Tower</span>
-  <span style="color:#92400e;font-weight:bold;">&#9632; CTAF/UNICOM</span>
-  <span style="color:#bbb;font-weight:bold;">&#9632; N/A</span>
-  &nbsp;&nbsp;
-  <strong>PAT:</strong>
-  <span>colon=published side &nbsp;|&nbsp; no colon=conv. left &nbsp;|&nbsp; CW=calm wind rwy</span>
+{# ── STEP 3: render sheets (2 panels per sheet) ── #}
+{% for sheet_idx in range(total_sheets) %}
+{%- set p1 = ns.panels[sheet_idx * 2] -%}
+{%- set p2 = ns.panels[sheet_idx * 2 + 1] if (sheet_idx * 2 + 1) < num_panels else [] -%}
+<div class="sheet">
+  <div class="fold"></div>
+  {{ render_panel(p1, sheet_idx * 2 + 1) }}
+  {% if p2 %}{{ render_panel(p2, sheet_idx * 2 + 2) }}{% else %}<div class="panel empty"></div>{% endif %}
 </div>
+{% endfor %}
 
 </body>
 </html>

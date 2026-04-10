@@ -45,7 +45,8 @@ def _abbrev_name(name: str) -> str:
     """Abbreviate airport name to max 13 chars."""
     if not name:
         return ""
-    s = re.sub(r'\s+Airport\s*$', '', name, flags=re.IGNORECASE)
+    s = name.title()
+    s = re.sub(r'\s+Airport\s*$', '', s, flags=re.IGNORECASE)
     replacements = [
         (r'\bRegional\b', 'Rgnl'), (r'\bMunicipal\b', 'Muni'),
         (r'\bInternational\b', 'Intl'), (r'\bExecutive\b', 'Exec'),
@@ -67,7 +68,7 @@ def _abbrev_city(city: str) -> str:
     """Abbreviate city name to max 10 chars."""
     if not city:
         return ""
-    s = city
+    s = city.title()
     replacements = [
         (r'\bFort\b', 'Ft'), (r'\bSaint\b', 'St'),
         (r'\bSprings\b', 'Spgs'), (r'\bHeights\b', 'Hts'),
@@ -77,75 +78,150 @@ def _abbrev_city(city: str) -> str:
         s = re.sub(pattern, repl, s)
     return s.strip()[:10]
 
+_PAVED_SURFACES = ('ASPH', 'CONC', 'HARD', 'PEM', 'PFC', 'MACA', 'TARMAC', 'BITU', 'MACADAM')
+
+def _calc_kboard_lines(rec: dict, apch_lines: list) -> int:
+    """
+    Estimate visual line count for a kneeboard row.
+    Notes column: col.cco = 69px wide, 2px padding each side → 63px usable.
+    8.5px Arial ≈ 4.5px/char average → ~14 chars per line.
+    Counts all visible note segments: CW, Pref, Dirt runways, and approach lines.
+    Minimum 3 lines per airport (ICAO + Name stack always 3 tall).
+    """
+    _CPL = 14  # chars per line in Notes column
+
+    notes_segs = []
+    if rec.get('calm_wind_runway'):
+        notes_segs.append('CW: ' + rec['calm_wind_runway'])
+    if rec.get('preferred_runway'):
+        notes_segs.append('Pref: ' + rec['preferred_runway'])
+
+    dirt = [r.get('rwy_id', '') for r in rec.get('runways', [])
+            if not any((r.get('surface') or '').upper().startswith(p) for p in _PAVED_SURFACES)]
+    if dirt:
+        notes_segs.append('Dirt: ' + ', '.join(dirt))
+
+    notes_segs.extend(apch_lines)
+
+    notes_vis = sum(max(1, (len(s) + _CPL - 1) // _CPL) for s in notes_segs) if notes_segs else 0
+    rwy_vis = len(rec.get('runways', []))
+    pat_vis = len(rec.get('pattern_display', []))
+
+    return max(3, rwy_vis, pat_vis, notes_vis)
+
+def _get_right_pattern_set(runways: list) -> set:
+    """
+    Parse compound pattern_dir strings (e.g. '10:R 28:R') across all runways
+    to return set of rwy_ids (uppercase) that have published right-hand pattern.
+    NASR stores the full airport pattern string on every runway row.
+    """
+    right_rwys = set()
+    for rwy in runways:
+        pd = (rwy.get('pattern_dir') or '').strip()
+        if not pd or pd.upper() == 'STD':
+            continue
+        for token in pd.split():
+            parts = token.split(':')
+            if len(parts) == 2 and parts[1].strip().upper() == 'R':
+                right_rwys.add(parts[0].strip().upper())
+    return right_rwys
+
+
 def _build_pattern_display(runways: list) -> list:
     """
     Build pattern display strings from runway list.
-    Returns list of strings like "08:L/26:R" or "17/35", longest runway pair first.
+    Handles both individual runway rows (rwy_id='07L') and NASR combined-pair rows
+    (rwy_id='07L/25R'). When the DB stores a combined pair, split it and format each end.
+
+    Format rules:
+      - All-standard pair (both left): '17/35'
+      - Non-standard pair: '10:R/28L'  (right gets :R, partner gets L suffix)
+      - Both right:        '10:R/28:R'
+      - Unpaired standard: '10'
+      - Unpaired right:    '10:R'
+    Returns list sorted longest runway pair first.
     """
     if not runways:
         return []
 
-    # Filter out helipad runway IDs (H1, H2, etc.) — not standard traffic pattern runways
+    # Filter out helipad runway IDs (H1, H2, etc.)
     runways = [r for r in runways if not re.match(r'^H\d', r.get('rwy_id', ''))]
     if not runways:
         return []
 
-    # Sort by length descending
+    right_set = _get_right_pattern_set(runways)
+
+    def fmt_end(end_id: str, partner_is_right: bool = False) -> str:
+        """Format a single runway-end id with pattern indicator."""
+        is_right = end_id.upper() in right_set
+        if is_right:
+            return f"{end_id}:R"
+        elif partner_is_right and not re.search(r'[LRC]$', end_id):
+            # Only append L suffix on plain numeric ends (not already-labeled parallels)
+            return f"{end_id}L"
+        return end_id
+
     sorted_rwys = sorted(runways, key=lambda r: r.get('length_ft') or 0, reverse=True)
-
-    # Group into pairs: strip cardinal suffix (L/R/C) to find reciprocal pairs
-    def base_heading(rwy_id):
-        return re.sub(r'[LRC]$', '', rwy_id or '').strip()
-
     paired = []
     used = set()
+
     for rwy in sorted_rwys:
         rid = rwy.get('rwy_id', '').strip()
         if rid in used:
             continue
-        # Try to find reciprocal: heading + 18 (mod 36)
-        try:
-            base = base_heading(rid)
-            suffix = rid[len(base):]  # L, R, C, or ''
-            hdg = int(base)
-            recip_hdg = (hdg + 18) % 36 or 36
-            recip_id = f"{recip_hdg:02d}{suffix}"
-            # Also try opposite suffix for parallels
-            alt_suffixes = {'L': 'R', 'R': 'L', 'C': 'C', '': ''}
-            alt_recip_id = f"{recip_hdg:02d}{alt_suffixes.get(suffix, suffix)}"
-        except (ValueError, TypeError):
-            recip_id = None
-            alt_recip_id = None
+        used.add(rid)
 
-        recip = None
-        for candidate in sorted_rwys:
-            cid = candidate.get('rwy_id', '').strip()
-            if cid not in used and cid != rid and cid in (recip_id, alt_recip_id):
-                recip = candidate
-                break
+        length = rwy.get('length_ft') or 0
 
-        if recip:
-            used.add(rid)
-            used.add(recip.get('rwy_id', '').strip())
-            # Format: use colon notation only if pattern_dir is explicitly set and non-standard
-            pat1 = rwy.get('pattern_dir', '').strip() if rwy.get('pattern_dir') else ''
-            pat2 = recip.get('pattern_dir', '').strip() if recip.get('pattern_dir') else ''
-            has_explicit = pat1 in ('L', 'R') or pat2 in ('L', 'R')
-            if has_explicit and (pat1 == 'R' or pat2 == 'R'):
-                p1 = f":{pat1}" if pat1 else ''
-                p2 = f":{pat2}" if pat2 else ''
-                paired.append((rwy.get('length_ft') or 0, f"{rid}{p1}/{recip.get('rwy_id','').strip()}{p2}"))
+        # NASR combined format: '07L/25R', '15/33', etc.
+        if '/' in rid:
+            parts = rid.split('/', 1)
+            e1, e2 = parts[0].strip(), parts[1].strip()
+            r1_right = e1.upper() in right_set
+            r2_right = e2.upper() in right_set
+            if r1_right or r2_right:
+                s1 = fmt_end(e1, partner_is_right=r2_right)
+                s2 = fmt_end(e2, partner_is_right=r1_right)
+                paired.append((length, f"{s1}/{s2}"))
             else:
-                paired.append((rwy.get('length_ft') or 0, f"{rid}/{recip.get('rwy_id','').strip()}"))
+                paired.append((length, f"{e1}/{e2}"))
         else:
-            used.add(rid)
-            pat = rwy.get('pattern_dir', '').strip() if rwy.get('pattern_dir') else ''
-            if pat == 'R':
-                paired.append((rwy.get('length_ft') or 0, f"{rid}:R"))
-            else:
-                paired.append((rwy.get('length_ft') or 0, rid))
+            # Individual end row — try to pair with reciprocal in this list
+            def base_heading(rwy_id):
+                return re.sub(r'[LRC]$', '', rwy_id or '').strip()
+            try:
+                base = base_heading(rid)
+                suffix = rid[len(base):]
+                hdg = int(base)
+                recip_hdg = (hdg + 18) % 36 or 36
+                recip_id = f"{recip_hdg:02d}{suffix}"
+                alt_suffixes = {'L': 'R', 'R': 'L', 'C': 'C', '': ''}
+                alt_recip_id = f"{recip_hdg:02d}{alt_suffixes.get(suffix, suffix)}"
+            except (ValueError, TypeError):
+                recip_id = None
+                alt_recip_id = None
 
-    # Sort by length desc, return just strings
+            recip = None
+            for candidate in sorted_rwys:
+                cid = candidate.get('rwy_id', '').strip()
+                if cid not in used and cid != rid and cid in (recip_id, alt_recip_id):
+                    recip = candidate
+                    break
+
+            if recip:
+                recip_id_str = recip.get('rwy_id', '').strip()
+                used.add(recip_id_str)
+                r1_right = rid.upper() in right_set
+                r2_right = recip_id_str.upper() in right_set
+                if r1_right or r2_right:
+                    s1 = fmt_end(rid, partner_is_right=r2_right)
+                    s2 = fmt_end(recip_id_str, partner_is_right=r1_right)
+                    paired.append((length, f"{s1}/{s2}"))
+                else:
+                    paired.append((length, f"{rid}/{recip_id_str}"))
+            else:
+                paired.append((length, fmt_end(rid)))
+
     paired.sort(key=lambda x: x[0], reverse=True)
     return [s for _, s in paired]
 
@@ -193,6 +269,8 @@ def get_route_airports(
         filters.append("(site_type IS NULL OR site_type != 'H')")
     if public_only:
         filters.append("(apt_type IS NULL OR apt_type = 'PU' OR apt_type = 'MA')")
+    # Always exclude Class B airports (major commercial hubs)
+    filters.append("(airspace_class IS NULL OR airspace_class != 'B')")
 
     sql = f"SELECT * FROM airports WHERE {' AND '.join(filters)}"
     candidates = conn.execute(sql, params).fetchall()
@@ -246,6 +324,53 @@ def get_route_airports(
             rec['freq_approach'] = _get_typed_freq(freqs, ['APP', 'APCH', 'DEP'])
             rec['freq_clearance'] = _get_typed_freq(freqs, ['CD', 'CLD', 'D-ATIS', 'CLNC DEL'])
             rec['has_ils'] = any(f.get('freq_type', '').upper() == 'ILS' for f in freqs)
+
+            # Instrument approaches from d-TPP (grouped by runway, abbreviated types)
+            apch_rows = conn.execute(
+                "SELECT rwy_end, approach_type FROM approaches WHERE icao=? ORDER BY rwy_end, approach_type",
+                (apt['icao'],)
+            ).fetchall()
+
+            # Abbreviate verbose type names
+            _APCH_ABBREV = {
+                'RNAV (GPS)': 'RNAV', 'RNAV (RNP)': 'RNP',
+                'ILS OR LOC': 'ILS/LOC', 'ILS Z OR LOC': 'ILS/LOC', 'ILS Y OR LOC': 'ILS/LOC',
+                'ILS X OR LOC': 'ILS/LOC', 'HI-ILS OR LOC': 'Hi-ILS', 'ILS OR LOC/DME': 'ILS/LOC',
+                'HI-ILS OR LOC/DME': 'Hi-ILS', 'HI-ILS Y OR LOC': 'Hi-ILS',
+                'ILS Z OR LOC/DME': 'ILS/LOC', 'ILS Y OR LOC/DME': 'ILS/LOC',
+                'VOR/DME': 'VOR/D', 'VOR OR TACAN': 'VOR/TAC', 'VOR/DME OR TACAN': 'VOR/D',
+                'LOC BC': 'LOC-BC', 'COPTER RNAV (GPS)': 'COPTER', 'COPTER RNAV (RNP)': 'COPTER',
+                'HI-TACAN': 'Hi-TAC',
+            }
+            def _abbrev_apch(t: str) -> str:
+                if t in _APCH_ABBREV:
+                    return _APCH_ABBREV[t]
+                if 'VISUAL' in t:
+                    return 'VISUAL'
+                if t.startswith('COPTER'):
+                    return 'COPTER'
+                return t
+
+            # Group by runway end, collect unique abbreviated types
+            from collections import OrderedDict
+            rwy_types: dict = OrderedDict()
+            for rwy_end, apch_type in apch_rows:
+                if rwy_end == 'CIRC':
+                    continue  # skip circling-only entries
+                abbrev = _abbrev_apch(apch_type)
+                if rwy_end not in rwy_types:
+                    rwy_types[rwy_end] = []
+                if abbrev not in rwy_types[rwy_end]:
+                    rwy_types[rwy_end].append(abbrev)
+
+            # Format: "30R ILS/LOC, RNAV" per line (HTML <br> for template)
+            apch_lines = [f"{rwy} {', '.join(types)}" for rwy, types in rwy_types.items()]
+            rec['approach_notes'] = '<br>'.join(apch_lines)
+            rec['calm_wind_runway'] = ''
+            rec['preferred_runway'] = ''
+
+            # Pre-compute kboard_lines: visual line count including text-wrapping simulation.
+            rec['kboard_lines'] = _calc_kboard_lines(rec, apch_lines)
 
             rec['metar'] = {}
             results.append(rec)
