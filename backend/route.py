@@ -355,13 +355,14 @@ def get_route_airports(
             from collections import OrderedDict
             rwy_types: dict = OrderedDict()
             for rwy_end, apch_type in apch_rows:
-                if rwy_end == 'CIRC':
-                    continue  # skip circling-only entries
                 abbrev = _abbrev_apch(apch_type)
-                if rwy_end not in rwy_types:
-                    rwy_types[rwy_end] = []
-                if abbrev not in rwy_types[rwy_end]:
-                    rwy_types[rwy_end].append(abbrev)
+                # Circling-only approaches have no runway end — group them under
+                # "Circling" rather than dropping them (they're real approaches).
+                key = 'Circling' if rwy_end == 'CIRC' else rwy_end
+                if key not in rwy_types:
+                    rwy_types[key] = []
+                if abbrev not in rwy_types[key]:
+                    rwy_types[key].append(abbrev)
 
             # Format: "30R ILS/LOC, RNAV" per line (HTML <br> for template)
             apch_lines = [f"{rwy} {', '.join(types)}" for rwy, types in rwy_types.items()]

@@ -1,0 +1,19 @@
+name: Deploy to Render
+# Push-to-deploy without Render's GitHub app: on every push to master, call the
+# Render Deploy API. RENDER_TOKEN is stored as a repo secret.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          curl -fsS -X POST \
+            "https://api.render.com/v1/services/srv-d8jk8n3tqb8s73cclqog/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache":"do_not_clear"}'
