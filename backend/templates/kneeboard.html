@@ -45,27 +45,41 @@
 <body>
 
 {#
-  Row height algorithm (greedy natural-height packing):
+  Row height algorithm (balanced packing + fill-to-panel):
     - Each airport has kboard_lines: pre-computed in Python, wrapping-aware, min 3.
-    - PX_PER_LINE = 20px: natural pixel height per visual line.
-    - Pack by pixel budget: add airport to current panel if cur_px + row_px ≤ TBODY_PX,
-      otherwise flush panel and start a new one.
-    - Rendering: each row renders at kboard_lines × PX_PER_LINE exactly.
-      No proportional scaling — rows stay at their natural height; panels may have
-      whitespace at the bottom, but content is never stretched or squeezed.
+    - Natural row height = kboard_lines × PX_PER_LINE + ROW_PAD.
+    - num_panels = ceil(total_natural_px / TBODY_PX); airports (in route order)
+      are split into that many *evenly balanced* panels (fill-to-average), so a
+      single airport is never orphaned on a near-empty page.
+    - Rendering: each panel's rows are scaled by fill_scale = TBODY_PX / panel_px
+      so the table fills the chart with no bottom whitespace. Relative row
+      proportions (by content) are preserved.
 #}
 {%- set TBODY_PX   = 661 -%}
-{%- set PX_PER_LINE = 20 -%}
+{%- set PX_PER_LINE = 13 -%}
+{%- set ROW_PAD    = 10 -%}
 
 {%- set all_apts = airports | selectattr('kneeboard_include') | list -%}
 
-{# ── STEP 1: greedy pixel-budget packing ── #}
-{%- set ns = namespace(panels=[], cur=[], cur_px=0) -%}
+{# ── STEP 1: balanced packing ──
+   First size the run by total natural height, then split the (route-ordered)
+   airports into that many *evenly balanced* panels so we never overfill one
+   panel and orphan a single airport on a near-empty page. Each panel's rows
+   are later stretched to fill the chart (STEP 2), so every page looks full. #}
+{%- set tn = namespace(total=0) -%}
 {%- for apt in all_apts -%}
-  {%- set lines  = apt.kboard_lines | default(3) -%}
-  {%- set row_px = lines * PX_PER_LINE -%}
-  {%- if ns.cur | length > 0 and ns.cur_px + row_px > TBODY_PX -%}
+  {%- set tn.total = tn.total + ((apt.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD) -%}
+{%- endfor -%}
+{%- set num_panels = ((tn.total / TBODY_PX) | round(0, 'ceil')) | int -%}
+{%- if num_panels < 1 -%}{%- set num_panels = 1 -%}{%- endif -%}
+{%- set target = tn.total / num_panels -%}
+
+{%- set ns = namespace(panels=[], cur=[], cur_px=0, made=0) -%}
+{%- for apt in all_apts -%}
+  {%- set row_px = (apt.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD -%}
+  {%- if ns.cur | length > 0 and ns.cur_px + row_px > target and ns.made < num_panels - 1 -%}
     {%- set ns.panels = ns.panels + [ns.cur] -%}
+    {%- set ns.made   = ns.made + 1 -%}
     {%- set ns.cur    = [apt] -%}
     {%- set ns.cur_px = row_px -%}
   {%- else -%}
@@ -93,6 +107,12 @@
 
 {# ── STEP 2: render macro ── #}
 {% macro render_panel(apts, page_num) %}
+{#- per-panel vertical fill: scale this panel's rows so they sum to TBODY_PX -#}
+{%- set psum = namespace(px=0) -%}
+{%- for a in apts -%}
+  {%- set psum.px = psum.px + ((a.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD) -%}
+{%- endfor -%}
+{%- set fill_scale = (TBODY_PX / psum.px) if psum.px > 0 else 1 -%}
 
 <div class="panel">
   <div class="chart">
@@ -124,7 +144,8 @@
       <tbody>
         {% for apt in apts %}
         {%- set lines = apt.kboard_lines | default(3) -%}
-        {%- set row_h = lines * 20 -%}
+        {%- set nat_h = lines * PX_PER_LINE + ROW_PAD -%}
+        {%- set row_h = (nat_h * fill_scale) | round | int -%}
         {% set row_class = 'e' if loop.index is even else '' %}
         <tr class="{{ row_class }}" style="height:{{ row_h }}px;">
           <td><span class="icao">{{ apt.icao }}</span></td>

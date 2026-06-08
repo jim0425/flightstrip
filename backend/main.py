@@ -3,7 +3,8 @@ import asyncio
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 import sqlite3, io
@@ -16,6 +17,8 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 VERSION_FILE = DATA_DIR / "nasr_version.txt"
 DB_PATH = DATA_DIR / "airports.db"
 
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+
 app = FastAPI(title="FlightStrip API")
 
 app.add_middleware(
@@ -24,6 +27,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def index():
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 def get_nasr_version():
     try:
@@ -108,13 +117,10 @@ async def post_route(req: RouteRequest):
 
     icao_list = [a['icao'] for a in airports]
     metars = await get_metars(icao_list)
-    vfr_freq_types = {'CTAF','UNICOM','ATIS','AWOS','ASOS','TWR','GND'}
 
     for apt in airports:
         apt['metar'] = metars.get(apt['icao'], {'flight_category': 'UNKNOWN', 'raw_metar': 'N/A'})
         apt['affiliates'] = get_affiliates(apt, req.mode)
-        if req.mode in ('vfr', 'student'):
-            apt['frequencies'] = [f for f in apt['frequencies'] if f['freq_type'].upper() in vfr_freq_types]
 
     # Compute total distance across all waypoints
     total_nm = 0
@@ -162,6 +168,19 @@ async def route_pdf(
 
     route_label = " \u2192 ".join(wps)
 
+    conn_dist = sqlite3.connect(str(DB_PATH))
+    conn_dist.row_factory = sqlite3.Row
+    total_nm = 0
+    wp_coords = []
+    for icao in wps:
+        row = conn_dist.execute("SELECT lat, lon FROM airports WHERE icao=?", (icao,)).fetchone()
+        if row:
+            wp_coords.append(dict(row))
+    conn_dist.close()
+    for i in range(len(wp_coords) - 1):
+        total_nm += haversine_nm(wp_coords[i]['lat'], wp_coords[i]['lon'],
+                                  wp_coords[i+1]['lat'], wp_coords[i+1]['lon'])
+
     from jinja2 import Environment, FileSystemLoader
     from datetime import datetime
     template_dir = Path(__file__).parent / "templates"
@@ -175,7 +194,9 @@ async def route_pdf(
             from_icao=from_icao,
             to_icao=to_icao,
             mode=mode,
-            generated_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+            distance_nm=round(total_nm),
+            corridor_nm=int(corridor_nm),
+            generated_date=datetime.utcnow().strftime("%Y-%m-%d")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {e}")
@@ -217,6 +238,20 @@ async def post_route_pdf(req: RouteRequest):
 
     route_label = " \u2192 ".join(wps)
 
+    # Compute total route distance
+    conn2 = sqlite3.connect(str(DB_PATH))
+    conn2.row_factory = sqlite3.Row
+    total_nm = 0
+    wp_coords = []
+    for icao in wps:
+        row = conn2.execute("SELECT lat, lon FROM airports WHERE icao=?", (icao,)).fetchone()
+        if row:
+            wp_coords.append(dict(row))
+    conn2.close()
+    for i in range(len(wp_coords) - 1):
+        total_nm += haversine_nm(wp_coords[i]['lat'], wp_coords[i]['lon'],
+                                  wp_coords[i+1]['lat'], wp_coords[i+1]['lon'])
+
     from jinja2 import Environment, FileSystemLoader
     from datetime import datetime
     template_dir = Path(__file__).parent / "templates"
@@ -230,7 +265,9 @@ async def post_route_pdf(req: RouteRequest):
             from_icao=wps[0],
             to_icao=wps[-1],
             mode=req.mode,
-            generated_date=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+            distance_nm=round(total_nm),
+            corridor_nm=int(req.corridor_nm),
+            generated_date=datetime.utcnow().strftime("%Y-%m-%d")
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template error: {e}")
