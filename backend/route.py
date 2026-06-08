@@ -62,7 +62,7 @@ def _abbrev_name(name: str) -> str:
     for pattern, repl in replacements:
         s = re.sub(pattern, repl, s)
     s = re.sub(r'\s+', ' ', s).strip()
-    return s[:13]
+    return s[:24]  # name wraps to 2 lines in the kneeboard, so allow more chars
 
 def _abbrev_city(city: str) -> str:
     """Abbreviate city name to max 10 chars."""
