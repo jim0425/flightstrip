@@ -1,0 +1,24 @@
+# FlightStrip — Free Pilot Kneeboard Generator
+# https://flightstrip.bolderaviation.com/
+# Search crawlers and AI assistants are explicitly welcome to read and cite this tool.
+
+User-agent: *
+Allow: /
+
+# AI / LLM crawlers — explicitly allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://flightstrip.bolderaviation.com/sitemap.xml

@@ -3,7 +3,105 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FlightStrip - Free Pilot Kneeboard Generator</title>
+
+  <!-- ============================= SEO / SOCIAL ============================= -->
+  <title>FlightStrip — Free Pilot Kneeboard Generator | Runways, Lengths &amp; Frequencies Along Your Route</title>
+  <meta name="description" content="Free kneeboard generator for pilots. Enter your route and instantly get runways, lengths, and frequencies for every airport along the way. Printable PDF."/>
+  <link rel="canonical" href="https://flightstrip.bolderaviation.com/"/>
+  <meta name="theme-color" content="#1040bb"/>
+  <meta name="robots" content="index, follow, max-image-preview:large"/>
+  <meta name="author" content="Bolder Aviation"/>
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="FlightStrip"/>
+  <meta property="og:title" content="FlightStrip — Free Pilot Kneeboard Generator"/>
+  <meta property="og:description" content="Enter your route and instantly get runways, lengths, and frequencies for every airport along the way. Printable VFR kneeboard PDF. Free."/>
+  <meta property="og:url" content="https://flightstrip.bolderaviation.com/"/>
+  <meta property="og:image" content="https://flightstrip.bolderaviation.com/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="FlightStrip — free pilot kneeboard generator: runways, lengths and frequencies along your route"/>
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="FlightStrip — Free Pilot Kneeboard Generator"/>
+  <meta name="twitter:description" content="Enter your route and instantly get runways, lengths, and frequencies for every airport along the way. Printable VFR kneeboard PDF. Free."/>
+  <meta name="twitter:image" content="https://flightstrip.bolderaviation.com/og-image.png"/>
+
+  <!-- Hero image is self-hosted (same-origin), so no third-party preconnect needed. -->
+
+  <!-- Structured data: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "FlightStrip",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "url": "https://flightstrip.bolderaviation.com/",
+    "description": "Free kneeboard generator for pilots. Enter your route and instantly get runways, lengths, and frequencies for every airport along the way. Printable PDF.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "publisher": { "@type": "Organization", "name": "Bolder Aviation" }
+  }
+  </script>
+
+  <!-- Structured data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Bolder Aviation",
+    "url": "https://flightstrip.bolderaviation.com/",
+    "logo": "https://flightstrip.bolderaviation.com/apple-touch-icon.png"
+  }
+  </script>
+
+  <!-- Structured data: FAQPage (mirrors the visible FAQ section) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is FlightStrip free?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. FlightStrip is completely free for all pilots — no login, no subscription, and no paywall." }
+      },
+      {
+        "@type": "Question",
+        "name": "What does FlightStrip show for each airport?",
+        "acceptedAnswer": { "@type": "Answer", "text": "For every airport within your chosen corridor along the route, FlightStrip lists the runways and longest runway length, the surface and traffic pattern direction, field elevation, the CTAF/tower and ATIS/AWOS frequencies, and the current weather flight category." }
+      },
+      {
+        "@type": "Question",
+        "name": "Where does the data come from?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Airport, runway, and frequency data comes from the FAA NASR dataset (refreshed every 28 days), and live weather (METARs) comes from aviationweather.gov." }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I print a kneeboard or save a PDF?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. After you generate a route you can download a printable kneeboard PDF sized for a standard kneeboard, or print directly from your browser." }
+      },
+      {
+        "@type": "Question",
+        "name": "How many airports can a route have?",
+        "acceptedAnswer": { "@type": "Answer", "text": "A route can have 2 to 4 stops — an origin, a destination, and up to two waypoints. Adjust the corridor width to include more or fewer airports near your course." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is FlightStrip a substitute for official preflight planning?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No. FlightStrip is a convenience tool for glancing at runways, lengths, and frequencies along a route. Always confirm airport data, NOTAMs, and weather with official FAA sources before every flight." }
+      }
+    ]
+  }
+  </script>
+  <!-- =================================================================== -->
+
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,6 +111,8 @@
     .mono { font-family: 'Courier New', Courier, monospace; }
     @media print {
       .no-print { display: none !important; }
+      /* Print safety: never let marketing chrome onto the kneeboard */
+      .ad-slot, .hero, .site-about, .site-faq { display: none !important; }
       .print-header { display: block !important; }
       .expand-detail { display: table-row !important; }
       @page { size: 8.5in 5.5in landscape; margin: 0.25in; }
@@ -252,6 +352,27 @@ function RouteTable({ airports, summary, routeLabel }) {
   );
 }
 
+// -------------------------------------------------------------------------
+// Affiliate ad slot — empty styled placeholder. Jim pastes banner code later.
+// Renders a REAL HTML comment marker into the DOM at each slot, plus a faint
+// dashed "Ad" placeholder. Always carries class "no-print ad-slot" so it is
+// hidden in print. NEVER mounted inside the route-results / kneeboard subtree.
+// -------------------------------------------------------------------------
+function AdSlot({ name, size, className = "", style }) {
+  const marker = `<!-- AFFILIATE AD SLOT [${name}][${size}]: paste affiliate/banner code here -->`;
+  const label = `<span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 select-none">Ad</span>`;
+  return (
+    <div
+      className={`no-print ad-slot flex items-center justify-center border border-dashed border-gray-300 rounded-lg bg-gray-50/60 text-gray-400 ${className}`}
+      style={style}
+      aria-hidden="true"
+      data-ad-slot={name}
+      data-ad-size={size}
+      dangerouslySetInnerHTML={{ __html: marker + label }}
+    />
+  );
+}
+
 function App() {
   const [waypoints, setWaypoints] = React.useState(["KBJC","KSUN"]);
   const [corridor, setCorridor]   = React.useState(25);
@@ -313,56 +434,159 @@ function App() {
   const routeLabel = result?.route_label || waypoints.filter(w=>w.length>=3).join(' \u2192 ');
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-4">
-      <header className="no-print flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-blue-800">&#9992; FlightStrip</h1>
-          <p className="text-xs text-gray-400">Free pilot kneeboard generator</p>
-        </div>
-      </header>
+    <div className="max-w-6xl mx-auto px-4 pt-4 pb-4">
 
-      <div className="no-print bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
-        <div className="flex flex-wrap gap-3 items-end">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Route (2&#8211;4 stops)</label>
-            <WaypointInputs waypoints={waypoints} setWaypoints={setWaypoints}/>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Corridor: {corridor}nm</label>
-            <input type="range" min={5} max={50} value={corridor} onChange={e=>setCorridor(Number(e.target.value))} className="w-28 mt-1"/>
-          </div>
-          <button onClick={generateRoute} disabled={loading}
-            className="px-4 py-1.5 bg-blue-700 text-white rounded font-semibold text-sm hover:bg-blue-800 disabled:opacity-50">
-            {loading?"Loading\u2026":"Generate Route"}
-          </button>
-          <button onClick={downloadPdf} disabled={!result||pdfLoading}
-            className="px-4 py-1.5 bg-gray-700 text-white rounded font-semibold text-sm hover:bg-gray-800 disabled:opacity-40">
-            {pdfLoading?"Generating\u2026":"\u2b07 Kneeboard PDF"}
-          </button>
+      {/* ========================= HERO (no-print) ========================= */}
+      {/* Hero background: Jim's own Cessna 206 (N2552X) in a mountain meadow at
+          golden hour (frontend/assets/hero-n2552x.webp, PNG fallback via image-set).
+          Aircraft sits right / open sky left, so a LEFT-weighted dark gradient keeps
+          the headline + subtext legible. bg-slate-900 is the base fallback color. */}
+      <section
+        className="hero no-print relative overflow-hidden rounded-2xl shadow-sm bg-slate-900"
+        style={{
+          backgroundImage: "linear-gradient(90deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.45) 38%, rgba(15,23,42,0) 70%), image-set(url('/assets/hero-n2552x.webp') type('image/webp'), url('/assets/hero-n2552x.png') type('image/png'))",
+          backgroundPosition: "center right",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="relative px-6 sm:px-10 pt-9 pb-20 sm:pb-24">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            <span className="text-sky-300">&#9992;</span> FlightStrip
+            <span className="block text-base sm:text-lg font-semibold text-sky-200 mt-1">Free Pilot Kneeboard Generator</span>
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed text-sky-50/90">
+            Stop pressing buttons. Enter your route and instantly see runways, runway lengths, and
+            frequencies for every airport along the way &mdash; in a glance-able kneeboard you can print.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-600">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" checked={publicOnly} onChange={e=>setPublicOnly(e.target.checked)} className="w-3.5 h-3.5"/>
-            Public use only
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" checked={excludeHelis} onChange={e=>setExcludeHelis(e.target.checked)} className="w-3.5 h-3.5"/>
-            Exclude heliports
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            Min runway:
-            <input type="number" value={minRunway} onChange={e=>setMinRunway(Number(e.target.value)||0)}
-              className="border rounded px-1.5 py-0.5 w-16 text-xs mono ml-1" min={0} step={500} placeholder="0"/>
-            ft
-          </label>
-        </div>
+      </section>
+
+      {/* ============== TWO-COLUMN: tool + content | ad rail ============== */}
+      <div className="relative z-10 -mt-12 lg:flex lg:items-start lg:gap-6 lg:justify-center">
+
+        {/* LEFT: tool + content (max ~720px). On mobile this is the whole page. */}
+        <main className="w-full lg:max-w-[720px] lg:flex-shrink-0">
+
+          {/* Control card \u2014 functionality unchanged, only restyled/wrapped */}
+          <div className="no-print bg-white rounded-xl border border-gray-200 shadow-lg ring-1 ring-black/5 p-5 sm:p-6">
+            <div className="flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Route (2&#8211;4 stops)</label>
+                <WaypointInputs waypoints={waypoints} setWaypoints={setWaypoints}/>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Corridor: {corridor}nm</label>
+                <input type="range" min={5} max={50} value={corridor} onChange={e=>setCorridor(Number(e.target.value))} className="w-28 mt-1 accent-blue-700"/>
+              </div>
+              <button onClick={generateRoute} disabled={loading}
+                className="px-5 py-2 bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm hover:bg-blue-800 disabled:opacity-50 transition-colors">
+                {loading?"Loading\u2026":"Generate Route"}
+              </button>
+              <button onClick={downloadPdf} disabled={!result||pdfLoading}
+                className="px-5 py-2 bg-gray-700 text-white rounded-lg font-semibold text-sm shadow-sm hover:bg-gray-800 disabled:opacity-40 transition-colors">
+                {pdfLoading?"Generating\u2026":"\u2b07 Kneeboard PDF"}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-600">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={publicOnly} onChange={e=>setPublicOnly(e.target.checked)} className="w-3.5 h-3.5 accent-blue-700"/>
+                Public use only
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={excludeHelis} onChange={e=>setExcludeHelis(e.target.checked)} className="w-3.5 h-3.5 accent-blue-700"/>
+                Exclude heliports
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                Min runway:
+                <input type="number" value={minRunway} onChange={e=>setMinRunway(Number(e.target.value)||0)}
+                  className="border rounded px-1.5 py-0.5 w-16 text-xs mono ml-1" min={0} step={500} placeholder="0"/>
+                ft
+              </label>
+            </div>
+          </div>
+
+          {/* AD: leaderboard 728x90, collapses to 320x50 on mobile */}
+          {/* AFFILIATE AD SLOT [leaderboard][728x90 desktop / 320x50 mobile] */}
+          <AdSlot name="leaderboard" size="728x90"
+            className="mx-auto mt-4 w-full max-w-[320px] h-[50px] sm:max-w-[728px] sm:h-[90px]"/>
+
+          {/* Results \u2014 unchanged component, identical props/handlers */}
+          {loading && <div className="text-center py-10 text-gray-400 text-sm">Fetching route and live weather&hellip;</div>}
+          {error && <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm mt-4"><strong>Error:</strong> {error}</div>}
+          {result && <div className="mt-4"><RouteTable airports={result.route} summary={result.summary} routeLabel={routeLabel}/></div>}
+
+          {/* ===================== ABOUT / HOW IT WORKS ===================== */}
+          <section className="site-about no-print mt-10 text-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">How it works</h2>
+            <p className="text-sm leading-relaxed mb-3">
+              Modern cockpit tools &mdash; ForeFlight, Garmin navigators, GPS &mdash; make you press a lot of
+              buttons just to get the basics about airports along your route. FlightStrip was built so you can
+              enter your destination and route and instantly glance at what matters: which runways an airport
+              has, how long they are, and the frequencies &mdash; in a kneeboard format you can print and clip in.
+            </p>
+            <ol className="text-sm leading-relaxed list-decimal pl-5 space-y-1 mb-6">
+              <li>Enter 2&ndash;4 airports by ICAO (for example KBJC &rarr; KSUN) and set the corridor width.</li>
+              <li>Hit <strong>Generate Route</strong> to pull every airport near your course with live weather.</li>
+              <li>Download a printable <strong>Kneeboard PDF</strong> and clip it to your kneeboard.</li>
+            </ol>
+
+            {/* AD: in-content medium rectangle 300x250 (static body, NOT in results) */}
+            {/* AFFILIATE AD SLOT [in-content-rectangle][300x250] */}
+            <AdSlot name="in-content-rectangle" size="300x250"
+              className="mx-auto my-6 w-[300px] h-[250px] max-w-full"/>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Who it's for</h2>
+            <ul className="text-sm leading-relaxed list-disc pl-5 space-y-1">
+              <li>VFR pilots planning a cross-country who want runways, lengths, and frequencies at a glance.</li>
+              <li>Student pilots and CFIs who want a clean, printable airport reference for the route.</li>
+              <li>Anyone who wants a paper backup of the essentials for every field near their course.</li>
+            </ul>
+          </section>
+
+          {/* ===================== FAQ (mirrors FAQPage JSON-LD) ===================== */}
+          <section className="site-faq no-print mt-10 text-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 mb-3">Frequently asked questions</h2>
+            <div className="space-y-4 text-sm leading-relaxed">
+              <div>
+                <h3 className="font-semibold text-gray-900">Is FlightStrip free?</h3>
+                <p>Yes. FlightStrip is completely free for all pilots &mdash; no login, no subscription, and no paywall.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">What does FlightStrip show for each airport?</h3>
+                <p>For every airport within your chosen corridor along the route, FlightStrip lists the runways and longest runway length, the surface and traffic pattern direction, field elevation, the CTAF/tower and ATIS/AWOS frequencies, and the current weather flight category.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Where does the data come from?</h3>
+                <p>Airport, runway, and frequency data comes from the FAA NASR dataset (refreshed every 28 days), and live weather (METARs) comes from aviationweather.gov.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Can I print a kneeboard or save a PDF?</h3>
+                <p>Yes. After you generate a route you can download a printable kneeboard PDF sized for a standard kneeboard, or print directly from your browser.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">How many airports can a route have?</h3>
+                <p>A route can have 2 to 4 stops &mdash; an origin, a destination, and up to two waypoints. Adjust the corridor width to include more or fewer airports near your course.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Is FlightStrip a substitute for official preflight planning?</h3>
+                <p>No. FlightStrip is a convenience tool for glancing at runways, lengths, and frequencies along a route. Always confirm airport data, NOTAMs, and weather with official FAA sources before every flight.</p>
+              </div>
+            </div>
+          </section>
+
+        </main>
+
+        {/* RIGHT: ad rail \u2014 skyscraper 300x600, lg+ only, sticky in column */}
+        <aside className="hidden lg:block lg:flex-shrink-0 lg:w-[300px]">
+          {/* AFFILIATE AD SLOT [right-rail-skyscraper][300x600] */}
+          <AdSlot name="right-rail-skyscraper" size="300x600"
+            className="sticky top-4 w-[300px] h-[600px]"/>
+        </aside>
+
       </div>
 
-      {loading && <div className="text-center py-10 text-gray-400 text-sm">Fetching route and live weather&hellip;</div>}
-      {error && <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm mb-4"><strong>Error:</strong> {error}</div>}
-      {result && <RouteTable airports={result.route} summary={result.summary} routeLabel={routeLabel}/>}
-
-      <footer className="no-print text-center text-xs text-gray-300 mt-8 pb-6">
+      <footer className="no-print text-center text-xs text-gray-300 mt-10 pb-6">
         Data: FAA NASR + aviationweather.gov | Updated every 28 days | Free for all pilots
       </footer>
     </div>
