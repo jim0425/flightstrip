@@ -66,20 +66,14 @@
    airports into that many *evenly balanced* panels so we never overfill one
    panel and orphan a single airport on a near-empty page. Each panel's rows
    are later stretched to fill the chart (STEP 2), so every page looks full. #}
-{%- set tn = namespace(total=0) -%}
+{# Greedy fill: pack each panel with minimal-height rows until the next row would
+   overflow the chart, then start a new panel. With tight rows this puts as many
+   airports per page as fit — no wasted vertical space. #}
+{%- set ns = namespace(panels=[], cur=[], cur_px=0) -%}
 {%- for apt in all_apts -%}
-  {%- set tn.total = tn.total + ((apt.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD) -%}
-{%- endfor -%}
-{%- set num_panels = ((tn.total / TBODY_PX) | round(0, 'ceil')) | int -%}
-{%- if num_panels < 1 -%}{%- set num_panels = 1 -%}{%- endif -%}
-{%- set target = tn.total / num_panels -%}
-
-{%- set ns = namespace(panels=[], cur=[], cur_px=0, made=0) -%}
-{%- for apt in all_apts -%}
-  {%- set row_px = (apt.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD -%}
-  {%- if ns.cur | length > 0 and ns.cur_px + row_px > target and ns.made < num_panels - 1 -%}
+  {%- set row_px = (apt.kboard_lines | default(2)) * PX_PER_LINE + ROW_PAD -%}
+  {%- if ns.cur | length > 0 and ns.cur_px + row_px > TBODY_PX -%}
     {%- set ns.panels = ns.panels + [ns.cur] -%}
-    {%- set ns.made   = ns.made + 1 -%}
     {%- set ns.cur    = [apt] -%}
     {%- set ns.cur_px = row_px -%}
   {%- else -%}
