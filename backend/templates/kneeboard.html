@@ -32,35 +32,32 @@
   thead th.fh .rot { display:inline-block; transform:rotate(-45deg); transform-origin:left bottom; white-space:nowrap; font-size:6.5px; color:#90caf9; line-height:1; }
   tbody tr { border-bottom:0.5px solid #ccc; }
   tbody tr.e td { background:#efefec; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  tbody td { padding:2px 3px; vertical-align:middle; border-right:0.5px solid #ccc; font-weight:bold; font-size:9px; font-family:'Courier New',Courier,monospace; overflow:hidden; line-height:1.45; box-sizing:border-box; }
+  tbody td { padding:1px 3px; vertical-align:top; border-right:0.5px solid #ccc; font-weight:bold; font-size:9px; font-family:'Courier New',Courier,monospace; overflow:hidden; line-height:1.1; box-sizing:border-box; }
   tbody td:last-child { border-right:none; }
   .icao { color:#1040bb; font-size:10px; font-weight:bold; }
   .nm   { font-family:Arial; font-size:6.5px; font-weight:bold; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:normal; line-height:1.05; }
   .cy   { font-family:Arial; font-size:5px; font-weight:bold; color:#666; display:block; }
   .stk  { display:block; }
-  td.fc { background:#e8f0fe; font-size:8.5px; font-family:'Courier New',monospace; font-weight:bold; padding:2px 2px; }
+  td.fc { background:#e8f0fe; font-size:8.5px; font-family:'Courier New',monospace; font-weight:bold; padding:1px 2px; }
   tbody tr.e td.fc { background:#d2e3fc; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .ftw{color:#1040bb} .fct{color:#92400e} .fnd{color:#bbb}
-  td.nt { font-family:Arial,sans-serif; font-size:8px; font-weight:normal; line-height:1.5; overflow:hidden; vertical-align:top; padding-top:3px; }
+  td.nt { font-family:Arial,sans-serif; font-size:8px; font-weight:normal; line-height:1.15; overflow:hidden; vertical-align:top; }
   .leg { display:flex; gap:6px; flex-wrap:wrap; font-size:7px; font-family:Arial; align-items:center; flex-shrink:0; padding-top:3px; border-top:0.5px solid #ccc; }
 </style>
 </head>
 <body>
 
 {#
-  Row height algorithm (balanced packing + fill-to-panel):
-    - Each airport has kboard_lines: pre-computed in Python, wrapping-aware, min 3.
-    - Natural row height = kboard_lines × PX_PER_LINE + ROW_PAD.
-    - num_panels = ceil(total_natural_px / TBODY_PX); airports (in route order)
-      are split into that many *evenly balanced* panels (fill-to-average), so a
-      single airport is never orphaned on a near-empty page.
-    - Rendering: each panel's rows are scaled by fill_scale = TBODY_PX / panel_px
-      so the table fills the chart with no bottom whitespace. Relative row
-      proportions (by content) are preserved.
+  Row height algorithm (minimal natural height — rows as SHORT as possible):
+    - kboard_lines (computed in Python) = the MAX line count across every column
+      in the row (name-wrap, elev/TPA=2, #runways, #patterns, freqs, notes).
+    - Rows are NOT stretched: each <tr> gets its natural height = the tallest
+      cell. We do not pad to fill the panel — minimize row height.
+    - kboard_lines is only used to budget how many airports fit per panel.
 #}
-{%- set TBODY_PX   = 661 -%}
-{%- set PX_PER_LINE = 13 -%}
-{%- set ROW_PAD    = 10 -%}
+{%- set TBODY_PX   = 650 -%}
+{%- set PX_PER_LINE = 10 -%}
+{%- set ROW_PAD    = 4 -%}
 
 {%- set all_apts = airports | selectattr('kneeboard_include') | list -%}
 
@@ -108,15 +105,8 @@
   {%- endif -%}
 {%- endmacro -%}
 
-{# ── STEP 2: render macro ── #}
+{# ── STEP 2: render macro (rows render at natural minimal height) ── #}
 {% macro render_panel(apts, page_num) %}
-{#- per-panel vertical fill: scale this panel's rows so they sum to TBODY_PX -#}
-{%- set psum = namespace(px=0) -%}
-{%- for a in apts -%}
-  {%- set psum.px = psum.px + ((a.kboard_lines | default(3)) * PX_PER_LINE + ROW_PAD) -%}
-{%- endfor -%}
-{%- set fill_scale = (TBODY_PX / psum.px) if psum.px > 0 else 1 -%}
-
 <div class="panel">
   <div class="chart">
     <div class="rh">
@@ -146,11 +136,8 @@
       </tr></thead>
       <tbody>
         {% for apt in apts %}
-        {%- set lines = apt.kboard_lines | default(3) -%}
-        {%- set nat_h = lines * PX_PER_LINE + ROW_PAD -%}
-        {%- set row_h = (nat_h * fill_scale) | round | int -%}
         {% set row_class = 'e' if loop.index is even else '' %}
-        <tr class="{{ row_class }}" style="height:{{ row_h }}px;">
+        <tr class="{{ row_class }}">
           <td><span class="icao">{{ apt.icao }}</span></td>
           <td><span class="nm">{{ apt.name_abbrev }}</span><span class="cy">{{ apt.city_abbrev }}</span></td>
           <td>{{ apt.elevation_ft|int }}<br>&uarr;{{ (apt.tpa_ft if apt.tpa_ft else apt.elevation_ft + 1000)|int }}</td>

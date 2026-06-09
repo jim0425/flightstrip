@@ -82,32 +82,41 @@ _PAVED_SURFACES = ('ASPH', 'CONC', 'HARD', 'PEM', 'PFC', 'MACA', 'TARMAC', 'BITU
 
 def _calc_kboard_lines(rec: dict, apch_lines: list) -> int:
     """
-    Estimate visual line count for a kneeboard row.
-    Notes column: col.cco = 69px wide, 2px padding each side → 63px usable.
-    8.5px Arial ≈ 4.5px/char average → ~14 chars per line.
-    Counts all visible note segments: CW, Pref, Dirt runways, and approach lines.
-    Minimum 3 lines per airport (ICAO + Name stack always 3 tall).
+    Row height = the MAX line-count across every column in the row, minimized.
+    For each cell we count the visual lines it needs; the tallest cell sets the
+    row height. (Used only to budget airports-per-panel; the row itself renders
+    at its natural minimal height.)
+      - Name cell: wrapped name (~13 chars/line at 46px) + 1 line for city
+      - Elev/TPA : always 2 lines (elevation over TPA)
+      - Length   : one line per runway
+      - Pattern  : one line per pattern entry
+      - Freqs    : 1 line each (never the tallest)
+      - Notes    : wrapped note/approach segments (~17 chars/line at 74px)
     """
-    _CPL = 14  # chars per line in Notes column
+    NAME_CPL = 13   # Name column ~46px @6.5px Arial
+    NOTES_CPL = 17  # Notes column ~74px @8px Arial
+
+    name = rec.get('name_abbrev') or ''
+    city = rec.get('city_abbrev') or ''
+    name_lines = max(1, (len(name) + NAME_CPL - 1) // NAME_CPL) + (1 if city else 0)
 
     notes_segs = []
     if rec.get('calm_wind_runway'):
         notes_segs.append('CW: ' + rec['calm_wind_runway'])
     if rec.get('preferred_runway'):
         notes_segs.append('Pref: ' + rec['preferred_runway'])
-
     dirt = [r.get('rwy_id', '') for r in rec.get('runways', [])
             if not any((r.get('surface') or '').upper().startswith(p) for p in _PAVED_SURFACES)]
     if dirt:
         notes_segs.append('Dirt: ' + ', '.join(dirt))
-
     notes_segs.extend(apch_lines)
+    notes_vis = sum(max(1, (len(s) + NOTES_CPL - 1) // NOTES_CPL) for s in notes_segs)
 
-    notes_vis = sum(max(1, (len(s) + _CPL - 1) // _CPL) for s in notes_segs) if notes_segs else 0
     rwy_vis = len(rec.get('runways', []))
     pat_vis = len(rec.get('pattern_display', []))
+    elev_tpa = 2
 
-    return max(3, rwy_vis, pat_vis, notes_vis)
+    return max(2, name_lines, elev_tpa, rwy_vis, pat_vis, notes_vis)
 
 def _get_right_pattern_set(runways: list) -> set:
     """
