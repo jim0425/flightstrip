@@ -353,23 +353,67 @@ function RouteTable({ airports, summary, routeLabel }) {
 }
 
 // -------------------------------------------------------------------------
-// Affiliate ad slot — empty styled placeholder. Jim pastes banner code later.
-// Renders a REAL HTML comment marker into the DOM at each slot, plus a faint
-// dashed "Ad" placeholder. Always carries class "no-print ad-slot" so it is
-// hidden in print. NEVER mounted inside the route-results / kneeboard subtree.
+// Ad slot. Currently filled with a HOUSE AD cross-promoting AirCanvas
+// (Bolder Aviation's live METAR weather map — same pilot audience).
+// Always carries class "no-print ad-slot" so it is hidden in print, and is
+// NEVER mounted inside the route-results / kneeboard subtree.
+// TO SWAP TO ADSENSE LATER: replace the <a> body with the AdSense <ins>
+// unit (the data-ad-slot / data-ad-size attributes mark each placement).
 // -------------------------------------------------------------------------
-function AdSlot({ name, size, className = "", style }) {
-  const marker = `<!-- AFFILIATE AD SLOT [${name}][${size}]: paste affiliate/banner code here -->`;
-  const label = `<span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400 select-none">Ad</span>`;
+const HOUSE_AD_HREF = "https://aircanvas.bolderaviation.com/";
+
+function HouseAd({ name, size, variant, className = "" }) {
+  const base = "no-print ad-slot relative overflow-hidden rounded-lg text-white no-underline " +
+    "bg-gradient-to-br from-sky-700 via-blue-700 to-blue-900 ring-1 ring-black/10 shadow-sm " +
+    "transition-shadow hover:shadow-md";
+  const common = {
+    href: HOUSE_AD_HREF, target: "_blank", rel: "noopener sponsored",
+    "data-ad-slot": name, "data-ad-size": size,
+  };
+  const SponsoredTag = () => (
+    <span className="absolute top-1 right-1.5 text-[9px] uppercase tracking-widest text-white/45 select-none">Sponsored</span>
+  );
+
+  if (variant === "leaderboard") {
+    return (
+      <a {...common} className={`${base} flex items-center justify-between gap-3 px-4 ${className}`}>
+        <SponsoredTag/>
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="text-sky-200 text-lg leading-none">&#9992;</span>
+          <span className="font-extrabold tracking-tight">AirCanvas</span>
+          <span className="hidden sm:inline text-sky-100/90 text-sm truncate">Live METAR weather map for your hangar</span>
+        </span>
+        <span className="shrink-0 bg-white text-blue-800 font-semibold text-xs sm:text-sm rounded px-3 py-1">See it &rarr;</span>
+      </a>
+    );
+  }
+  if (variant === "skyscraper") {
+    return (
+      <a {...common} className={`${base} flex flex-col justify-between p-5 ${className}`}>
+        <SponsoredTag/>
+        <div>
+          <div className="text-sky-200 text-3xl leading-none mb-2">&#9992;</div>
+          <div className="text-2xl font-extrabold tracking-tight">AirCanvas</div>
+          <div className="text-sky-100/90 text-sm mt-2 leading-relaxed">Your airport&rsquo;s live weather, on the wall &mdash; a real-time LED METAR map for your hangar, FBO, or office.</div>
+          <ul className="text-sky-100/80 text-xs mt-4 space-y-1 list-disc pl-4">
+            <li>Live VFR / MVFR / IFR colors</li>
+            <li>Any airports you choose</li>
+            <li>Plug-and-play, always on</li>
+          </ul>
+        </div>
+        <span className="self-start bg-white text-blue-800 font-semibold text-sm rounded px-4 py-1.5 mt-4">See AirCanvas &rarr;</span>
+      </a>
+    );
+  }
+  // medium rectangle
   return (
-    <div
-      className={`no-print ad-slot flex items-center justify-center border border-dashed border-gray-300 rounded-lg bg-gray-50/60 text-gray-400 ${className}`}
-      style={style}
-      aria-hidden="true"
-      data-ad-slot={name}
-      data-ad-size={size}
-      dangerouslySetInnerHTML={{ __html: marker + label }}
-    />
+    <a {...common} className={`${base} flex flex-col justify-center items-start p-5 ${className}`}>
+      <SponsoredTag/>
+      <div className="text-sky-200 text-2xl leading-none">&#9992;</div>
+      <div className="text-xl font-extrabold tracking-tight mt-1">AirCanvas</div>
+      <div className="text-sky-100/90 text-sm mt-1 leading-snug">Live METAR weather map for your hangar or office.</div>
+      <span className="bg-white text-blue-800 font-semibold text-sm rounded px-3 py-1 mt-3">See AirCanvas &rarr;</span>
+    </a>
   );
 }
 
@@ -506,9 +550,9 @@ function App() {
             </div>
           </div>
 
-          {/* AD: leaderboard 728x90, collapses to 320x50 on mobile */}
+          {/* AD: leaderboard 728x90, collapses to 320x50 on mobile (house ad → AdSense later) */}
           {/* AFFILIATE AD SLOT [leaderboard][728x90 desktop / 320x50 mobile] */}
-          <AdSlot name="leaderboard" size="728x90"
+          <HouseAd name="leaderboard" size="728x90" variant="leaderboard"
             className="mx-auto mt-4 w-full max-w-[320px] h-[50px] sm:max-w-[728px] sm:h-[90px]"/>
 
           {/* Results \u2014 unchanged component, identical props/handlers */}
@@ -533,7 +577,7 @@ function App() {
 
             {/* AD: in-content medium rectangle 300x250 (static body, NOT in results) */}
             {/* AFFILIATE AD SLOT [in-content-rectangle][300x250] */}
-            <AdSlot name="in-content-rectangle" size="300x250"
+            <HouseAd name="in-content-rectangle" size="300x250" variant="rectangle"
               className="mx-auto my-6 w-[300px] h-[250px] max-w-full"/>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">Who it's for</h2>
@@ -580,7 +624,7 @@ function App() {
         {/* RIGHT: ad rail \u2014 skyscraper 300x600, lg+ only, sticky in column */}
         <aside className="hidden lg:block lg:flex-shrink-0 lg:w-[300px]">
           {/* AFFILIATE AD SLOT [right-rail-skyscraper][300x600] */}
-          <AdSlot name="right-rail-skyscraper" size="300x600"
+          <HouseAd name="right-rail-skyscraper" size="300x600" variant="skyscraper"
             className="sticky top-4 w-[300px] h-[600px]"/>
         </aside>
 
